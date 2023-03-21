@@ -1,13 +1,29 @@
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::json;
-use tokio::{net::TcpStream, io::{AsyncWriteExt, AsyncReadExt}};
+use tokio::{net::TcpStream, io::{AsyncWriteExt, AsyncReadExt}, sync::{Mutex, MutexGuard}};
 use lazy_regex::regex;
 use std::collections::HashSet;
-use crate::{Client, Miner, error::Error, Pool, miners::common, miners::whatsminer::wmapi};
+use phf::phf_map;
 
+use crate::{Client, Miner, error::Error, Pool, miners::common, miners::whatsminer::wmapi, Cache, CacheItem};
 use super::{error::WhatsminerErrors, wmapi::StatusCode};
 
+// (J/TH, Datasheet TH)
+static EFF_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
+    "M31S" => (46.0, 72.0),
+    "M31S+" => (42.0, 80.0),
+    "M30S" => (38.0, 88.0),
+    "M30S+" => (34.0, 100.0),
+    "M33S+" => (34.0, 210.0),
+    "M30S++" => (31.0, 108.0),
+    "M33S++" => (31.0, 230.0),
+    "M50" => (29.0, 115.0),
+    "M53" => (29.0, 235.0),
+    "M50S" => (26.0, 125.0),
+    "M53S" => (26.0, 235.0),
+    "M50S+" => (24.0, 138.0),
+};
 
 #[derive(Debug, Deserialize)]
 pub struct LogLen {
@@ -34,6 +50,10 @@ pub struct Whatsminer {
     password: Option<String>,
     token: Option<wmapi::WhatsminerToken>,
     client: Client,
+    cache: Option<Cache>,
+
+    model: Mutex<Option<String>>,
+    summary: Mutex<Option<wmapi::SummaryResp>>,
 }
 
 impl Whatsminer {
@@ -67,6 +87,37 @@ impl Whatsminer {
         }
     }
 
+    async fn token_cached(&mut self) -> Result<(), Error> {
+        // If we dont' have a token, check the cache
+        if self.token.is_none() {
+            if let Some(cache) = &self.cache {
+                let cache = cache.read().await;
+                if let Some(token) = cache.get(&self.ip) {
+                    if token.token_expires > chrono::Utc::now() {
+                        self.token = serde_json::from_str(&token.token)?;
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        self.refresh_token().await?;
+
+        if let Some(cache) = &self.cache {
+            let mut cache = cache.write().await;
+            if let Some(token) = &self.token {
+                cache.insert(
+                    self.ip.clone(),
+                    CacheItem {
+                        token: serde_json::to_string(token)?,
+                        token_expires: token.expires,
+                    },
+                );
+            }
+        }
+        return Ok(());
+    }
+
     async fn send_recv_enc(&mut self, mut data: serde_json::Value) -> Result<String, Error> {
         if let Some(token) = &self.token {
             // Refresh our token if its expired
@@ -87,6 +138,24 @@ impl Whatsminer {
             Err(Error::Unauthorized)
         }
     }
+
+    async fn get_summary(&self) -> Result<MutexGuard<Option<wmapi::SummaryResp>>, Error> {
+        let mut summary = self.summary.lock().await;
+        if summary.is_none() {
+            let resp = self.send_recv(&json!({"cmd": "summary"})).await?;
+            if let Ok(s) = serde_json::from_str::<wmapi::Status>(&resp) {
+                return Err(Error::ApiCallFailed(s.msg));
+            } else {
+                let resp = serde_json::from_str::<wmapi::SummaryResp>(&resp)?;
+                *summary = Some(resp);
+            }
+        }
+        Ok(summary)
+    }
+
+    async fn invalidate(&self) {
+        let _ = self.summary.lock().await.take();
+    }
 }
 
 #[async_trait]
@@ -98,7 +167,15 @@ impl Miner for Whatsminer {
             password: None,
             token: None,
             client,
+            cache: None,
+            summary: Mutex::new(None),
+            model: Mutex::new(None),
         }
+    }
+
+    fn with_cache(mut self, cache: Option<Cache>) -> Self {
+        self.cache = cache;
+        self
     }
 
     fn get_type(&self) -> &'static str {
@@ -106,19 +183,25 @@ impl Miner for Whatsminer {
     }
 
     async fn get_model(&self) -> Result<String, Error> {
-        let resp = self.client.http_client
-            .get(format!("https://{}/cgi-bin/luci/admin/status/overview", self.ip))
-            .send()
-            .await?
-            .text()
-            .await?;
-        let modelre = regex!(r#"<td.+>Model</td>\s*<td>WhatsMiner ([a-zA-Z0-9]+)(?:_V.+)?</td>"#);
-        let model = modelre.captures(&resp)
-            .ok_or(Error::ExpectedReturn)?
-            .get(1)
-            .ok_or(Error::ExpectedReturn)?
-            .as_str();
-        Ok(model.to_string())
+        let mut model = self.model.lock().await;
+
+        if model.is_none() {
+            let resp = self.client.http_client
+                .get(format!("https://{}/cgi-bin/luci/admin/status/overview", self.ip))
+                .send()
+                .await?
+                .text()
+                .await?;
+            let modelre = regex!(r#"<td.+>Model</td>\s*<td>WhatsMiner ([a-zA-Z0-9\+]+)(?:_V.+)?</td>"#);
+            *model = Some(modelre.captures(&resp)
+                .ok_or(Error::ExpectedReturn)?
+                .get(1)
+                .ok_or(Error::ExpectedReturn)?
+                .as_str()
+                .to_string());
+        }
+
+        Ok(model.as_ref().unwrap_or_else(|| unreachable!()).clone())
     }
 
     async fn auth(&mut self, username: &str, password: &str) -> Result<(), Error> {
@@ -131,7 +214,7 @@ impl Miner for Whatsminer {
         if r.status() != 200 {
             return Err(Error::Unauthorized);
         }
-        self.refresh_token().await?;
+        self.token_cached().await?;
         Ok(())
     }
 
@@ -144,50 +227,55 @@ impl Miner for Whatsminer {
     }
 
     async fn get_hashrate(&self) -> Result<f64, Error> {
-        let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-        if let Ok(status) = serde_json::from_str::<wmapi::Status>(&resp) {
-            // We could error or assume not hashing
-            // Err(Error::ApiCallFailed(status.msg))
-            Ok(0.0)
-        } else {
-            let sum: wmapi::SummaryResp = serde_json::from_str(&resp)?;
-            Ok(sum.summary[0].hs_rt / 1000000.0)
-        }
+        let sum = self.get_summary().await?;
+        let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+
+        Ok(sum.summary[0].hs_rt / 1000000.0)
     }
 
     async fn get_power(&self) -> Result<f64, Error> {
-        let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-        let sum: wmapi::SummaryResp = serde_json::from_str(&resp)?;
+        let sum = self.get_summary().await?;
+        let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+
         Ok(sum.summary[0].power as f64)
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {
-        let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-        let sum: wmapi::SummaryResp = serde_json::from_str(&resp)?;
-        if let Ok(status) = serde_json::from_str::<wmapi::Status>(&resp) {
-            // If we're not hashing we can't calculate efficiency
-            Ok(f64::INFINITY)
-        } else {
-            let sum: wmapi::SummaryResp = serde_json::from_str(&resp)?;
-            Ok(sum.summary[0].power as f64 / (sum.summary[0].hs_rt / 1000000.0))
+        if let Ok(sum) = self.get_summary().await {
+            let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+            if sum.summary[0].hs_rt > 0.0 {
+                return Ok(sum.summary[0].power as f64 / (sum.summary[0].hs_rt as f64 / 1000000.0));
+            }
         }
+        // If we're not hashing return the dataspec efficiency
+        let model = self.get_model().await?;
+        EFF_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model.to_string())).map(|(x, _)| *x)
     }
 
     async fn get_nameplate_rate(&self) -> Result<f64, Error> {
-        let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-        let hash: wmapi::SummaryResp = serde_json::from_str(&resp)?;
-        Ok(hash.summary[0].factory_ghs as f64 / 1000.0)
+        if let Ok(sum) = self.get_summary().await {
+            let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+    
+            Ok(sum.summary[0].factory_ghs as f64 / 1000.0)
+        } else {
+            // If we're not hashing return the dataspec efficiency
+            // Cause whatsminer .-.
+            let model = self.get_model().await?;
+            EFF_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model.to_string())).map(|(_, x)| *x)
+        }
     }
 
     async fn get_temperature(&self) -> Result<f64, Error> {
-        let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-        let sum: wmapi::SummaryResp = serde_json::from_str(&resp)?;
+        let sum = self.get_summary().await?;
+        let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+
         Ok(sum.summary[0].temperature)
     }
 
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error> {
-        let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-        let sum: wmapi::SummaryResp = serde_json::from_str(&resp)?;
+        let sum = self.get_summary().await?;
+        let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+
         Ok(vec![sum.summary[0].fan_speed_in, sum.summary[0].fan_speed_out])
     }
 
@@ -216,29 +304,33 @@ impl Miner for Whatsminer {
             "passwd3": pools[2].password,
         });
         let resp = self.send_recv_enc(js).await?;
-        //println!("{}", resp);
+        self.invalidate().await;
         Ok(())
     }
 
     async fn get_sleep(&self) -> Result<bool, Error> {
+        // Grrrrrr, cg/btminer isn't always present in the process listing...
+        if self.get_hashrate().await? > 0.0 {
+            return Ok(false);
+        }
         //This doesn't work for miners running cgminer
         let resp = self.send_recv(&json!({"cmd":"status"})).await?;
-        let btstatus: wmapi::BtStatusResp = serde_json::from_str(&resp)?;
-        match btstatus.msg.btmineroff {
-            false => Ok(false),
-            true => {
-                // Double check that cgminer isn't running
-                // Scrape the web API yet again
-                let r = self.client.http_client
-                .get(&format!("https://{}/cgi-bin/luci/admin/status/processes", self.ip))
-                    .send()
-                    .await?
-                    .text()
-                    .await?;
-                let re = regex!(r#".COMMAND" value="(cg|bt)miner" />"#);
-                Ok(!re.is_match(&r))
+        if let Ok(btstatus) = serde_json::from_str::<wmapi::BtStatusResp>(&resp) {
+            if !btstatus.msg.btmineroff {
+                return Ok(false);
             }
         }
+        
+        // Double check that cgminer isn't running
+        // Scrape the web API yet again
+        let r = self.client.http_client
+        .get(&format!("https://{}/cgi-bin/luci/admin/status/processes", self.ip))
+            .send()
+            .await?
+            .text()
+            .await?;
+        let re = regex!(r#".COMMAND" value="(cg|bt)miner" />"#);
+        Ok(!re.is_match(&r))
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
@@ -254,6 +346,7 @@ impl Miner for Whatsminer {
         let resp = self.send_recv_enc(js).await?;
         let stat = serde_json::from_str::<wmapi::Status>(&resp)?;
         if stat.status == StatusCode::SUCC {
+            self.invalidate().await;
             Ok(())
         } else {
             Err(Error::ApiCallFailed(stat.msg))
@@ -327,9 +420,9 @@ impl Miner for Whatsminer {
         let resp = self.send_recv(&json!({"cmd":"get_miner_info"})).await?;
         if let Ok(_) = serde_json::from_str::<wmapi::Status>(&resp) {
             // Older API version
-            let resp = self.send_recv(&json!({"cmd":"summary"})).await?;
-            let resp: wmapi::SummaryResp = serde_json::from_str(&resp)?;
-            resp.summary[0].mac.clone().ok_or(Error::ApiCallFailed("Failed to get MAC".to_string()))
+            let sum = self.get_summary().await?;
+            let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
+            sum.summary[0].mac.clone().ok_or(Error::ApiCallFailed("Failed to get MAC".to_string()))
         } else {
             let resp: wmapi::MinerInfoResponse = serde_json::from_str(&resp)?;
             Ok(resp.msg.mac.clone())
@@ -356,5 +449,15 @@ impl Miner for Whatsminer {
             }
         }
         Ok(errors.into_iter().collect())
+    }
+
+    async fn get_dns(&self) -> Result<String, Error> {
+        let resp = self.send_recv(&json!({"cmd":"get_miner_info"})).await?;
+        if let Ok(_) = serde_json::from_str::<wmapi::Status>(&resp) {
+            Err(Error::NotSupported)
+        } else {
+            let resp: wmapi::MinerInfoResponse = serde_json::from_str(&resp)?;
+            Ok(resp.msg.dns.clone())
+        }
     }
 }
