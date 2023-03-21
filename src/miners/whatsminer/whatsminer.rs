@@ -73,11 +73,23 @@ impl Whatsminer {
             let resp = self.send_recv(&json!({"cmd": "get_token"})).await?;
             match serde_json::from_str::<wmapi::TokenResponse>(&resp) {
                 Ok(token_resp) => {
-                        self.token = Some(
+                    self.token = Some(
                         token_resp
-                        .make_token(passwd)
-                        .map_err(|_| Error::ApiCallFailed("Failed to make token".into()))?
+                            .make_token(passwd)
+                            .map_err(|_| Error::ApiCallFailed("Failed to make token".into()))?
                     );
+                    if let Some(cache) = &self.cache {
+                        let mut cache = cache.write().await;
+                        if let Some(token) = &self.token {
+                            cache.insert(
+                                self.ip.clone(),
+                                CacheItem {
+                                    token: serde_json::to_string(token)?,
+                                    token_expires: token.expires,
+                                },
+                            );
+                        }
+                    }
                     Ok(())
                 },
                 Err(e) => Err(e.into())
@@ -88,7 +100,7 @@ impl Whatsminer {
     }
 
     async fn token_cached(&mut self) -> Result<(), Error> {
-        // If we dont' have a token, check the cache
+        // If we don't have a token, check the cache
         if self.token.is_none() {
             if let Some(cache) = &self.cache {
                 let cache = cache.read().await;
@@ -101,21 +113,7 @@ impl Whatsminer {
             }
         }
 
-        self.refresh_token().await?;
-
-        if let Some(cache) = &self.cache {
-            let mut cache = cache.write().await;
-            if let Some(token) = &self.token {
-                cache.insert(
-                    self.ip.clone(),
-                    CacheItem {
-                        token: serde_json::to_string(token)?,
-                        token_expires: token.expires,
-                    },
-                );
-            }
-        }
-        return Ok(());
+        self.refresh_token().await
     }
 
     async fn send_recv_enc(&mut self, mut data: serde_json::Value) -> Result<String, Error> {
