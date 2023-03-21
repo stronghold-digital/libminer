@@ -4,7 +4,6 @@ use std::io::Error as IoError;
 use serde_json::Error as JsonError;
 use digest_auth::Error as DigestAuthError;
 use reqwest::header::ToStrError;
-use crate::miners::avalon::DeError as AvalonDeError;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -24,7 +23,7 @@ pub enum Error {
 
     #[cfg(feature = "avalon")]
     #[error("Avalon deserializer error")]
-    AvalonDeserializerError(#[from] AvalonDeError),
+    AvalonDeserializerError(#[from] crate::miners::avalon::DeError),
 
     // Errors from this library
     // Detection errors
