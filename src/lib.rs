@@ -280,7 +280,7 @@ impl Client {
                 if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
                     if let Some(auth) = resp.headers().get("WWW-Authenticate") {
                         let re = regex!(r"^[Dd]igest");
-                        if re.is_match(auth.to_str().unwrap()) {
+                        if re.is_match(auth.to_str()?) {
                             debug!("Found Antminer at {}", ip);
                             return Ok(Box::new(antminer::Antminer::new(self.clone(), ip.into(), port)));
                         }

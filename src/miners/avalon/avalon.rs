@@ -210,7 +210,7 @@ impl Miner for Avalon {
         if status.status[0].status == cgminer::StatusCode::INFO {
             let re = regex!(r#"LED\[(\d)\]"#);
             let caps = re.captures(&status.status[0].msg).ok_or(Error::InvalidResponse)?;
-            let led = caps.get(1).unwrap().as_str().parse::<u8>().map_err(|_| Error::InvalidResponse)?;
+            let led = caps.get(1).ok_or(Error::InvalidResponse)?.as_str().parse::<u8>().map_err(|_| Error::InvalidResponse)?;
             Ok(led > 0)
         } else {
             Err(Error::ApiCallFailed(status.status[0].msg.clone()))

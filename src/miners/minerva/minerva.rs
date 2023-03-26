@@ -47,7 +47,7 @@ impl Minera {
     /// Returns the number of hashboards detected and the number online
     async fn get_board_count(&self) -> Result<u8, Error> {
         let stat = self.get_stats().await?;
-        let stat = stat.as_ref().unwrap();
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
         if let minera::StatsResp::Running(stat) = stat {
             if stat.devices.board_4.is_some() {
                 Ok(4)
@@ -120,7 +120,7 @@ impl Miner for Minera {
 
     async fn get_hashrate(&self) -> Result<f64, Error> {
         let stat = self.get_stats().await?;
-        let stat = stat.as_ref().unwrap();
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
         if let minera::StatsResp::Running(stat) = stat {
             // Convert to TH/S
             Ok(stat.totals.hashrate / 1000000000000.0)
@@ -149,7 +149,7 @@ impl Miner for Minera {
 
     async fn get_temperature(&self) -> Result<f64, Error> {
         let stat = self.get_stats().await?;
-        let stat = stat.as_ref().unwrap();
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
         if let minera::StatsResp::Running(stat) = stat {
             // Convert to TH/S
             Ok(stat.temp)
@@ -254,7 +254,7 @@ impl Miner for Minera {
 
     async fn get_mac(&self) -> Result<String, Error> {
         let stat = self.get_stats().await?;
-        let stat = stat.as_ref().unwrap();
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
         match stat {
             minera::StatsResp::Running(stat) => Ok(stat.mac_addr.clone()),
             minera::StatsResp::NotRunning(stat) => Ok(stat.mac_addr.clone()),
@@ -282,7 +282,7 @@ impl Miner for Minera {
 
     async fn get_dns(&self) -> Result<String, Error> {
         let stat = self.get_stats().await?;
-        let stat = stat.as_ref().unwrap();
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
         match stat {
             minera::StatsResp::Running(stat) => Ok(stat.ifconfig.dns.clone()),
             minera::StatsResp::NotRunning(stat) => Ok(stat.ifconfig.dns.clone()),
@@ -521,8 +521,8 @@ impl Miner for Minerva {
             .await?;
         //println!("{}", resp1.text().await.unwrap());
         let js = resp1.json::<serde_json::Value>().await?;
-        let mut hash = js.as_object().unwrap().clone();
-        let data = hash.get_mut("data").unwrap();
+        let mut hash = js.as_object().ok_or(Error::ExpectedReturn)?.clone();
+        let data = hash.get_mut("data").ok_or(Error::ExpectedReturn)?;
         //data["mask"] = serde_json::Value::from(if sleep { "0x0" } else { "0xf" });
         let mut default = serde_json::Map::new();
         let data = data.as_object_mut().unwrap_or(&mut default);
