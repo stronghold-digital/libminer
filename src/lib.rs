@@ -338,6 +338,8 @@ impl Client {
             Err(e) => {
                 if e.is_timeout() {
                     Err(Error::Timeout)
+                } else if e.is_connect() {
+                    Err(Error::NoMinerDetected)
                 } else {
                     Err(e.into())
                 }
@@ -373,6 +375,7 @@ impl Client {
                                 (Error::UnknownMinerType(s), Error::UnknownMinerType(s2)) => Err(Error::UnknownMinerType(format!("{} and {}", s, s2))),
                                 (Error::UnknownMinerType(s), e) => Err(Error::UnknownMinerType(format!("{} and {}", s, e))),
                                 (e, Error::UnknownMinerType(s)) => Err(Error::UnknownMinerType(format!("{} and {}", e, s))),
+                                (Error::NoMinerDetected, e) => Err(Error::UnknownMinerType(format!("No miner detected and {}", e))),
                                 (e, _) => { Err(e) }
                             }
                         }
