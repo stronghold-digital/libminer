@@ -336,8 +336,11 @@ impl Client {
                 Err(Error::UnknownMinerType("".into()))
             }
             Err(e) => {
-                debug!("Error while sending request to HTTP API: {}", e);
-                Err(e.into())
+                if e.is_timeout() {
+                    Err(Error::Timeout)
+                } else {
+                    Err(e.into())
+                }
             }
         }
     }
