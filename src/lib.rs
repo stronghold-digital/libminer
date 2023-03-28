@@ -263,7 +263,7 @@ impl Client {
             }
             Err(e) => {
                 debug!("Error while sending request to socket API: {}", e);
-                return Err(Error::UnknownMinerType);
+                return Err(e);
             }
         }
     }
@@ -337,7 +337,7 @@ impl Client {
             }
             Err(e) => {
                 debug!("Error while sending request to HTTP API: {}", e);
-                Err(Error::Timeout)
+                Err(e.into())
             }
         }
     }
@@ -356,10 +356,25 @@ impl Client {
         };
         debug!("Detecting miner at {}:{}", ip, port);
         let miner = {
-            if let Ok(miner) = self.http_detect(ip, port).await {
-                Ok(miner)
-            } else {
-                self.socket_detect(ip, port).await
+            match self.http_detect(ip, port).await {
+                Ok(miner) => Ok(miner),
+                Err(e) => {
+                    match self.socket_detect(ip, port).await {
+                        Ok(miner) => Ok(miner),
+                        Err(e2) => {
+                            // Handle some special error cases, default to returning the first error
+                            match (e, e2) {
+                                (Error::Timeout, Error::Timeout) => Err(Error::Timeout),
+                                (Error::Timeout, e) => Err(e),
+                                (e, Error::Timeout) => Err(e),
+                                (Error::UnknownMinerType, Error::UnknownMinerType) => Err(Error::UnknownMinerType),
+                                (Error::UnknownMinerType, _) => Err(Error::UnknownMinerType),
+                                (_, Error::UnknownMinerType) => Err(Error::UnknownMinerType),
+                                (e, _) => { Err(e) }
+                            }
+                        }
+                    }
+                }
             }
         }?;
         if let Some(permit) = permit {
