@@ -219,26 +219,26 @@ impl Client {
                                                 }
                                                 _ => {
                                                     debug!("Unable to determine interface for Minerva at {}", ip);
-                                                    Err(Error::UnknownMinerType)
+                                                    Err(Error::UnknownMinerType("Unable to determine interface for Minerva".into()))
                                                 },
                                             };
                                         } else {
                                             debug!("Unsupported miner type: {} at {}", type_, ip);
-                                            return Err(Error::UnknownMinerType);
+                                            return Err(Error::UnknownMinerType(format!("Unsupported miner type: {}", type_)));
                                         }
                                     } else {
                                         debug!("Miner did not include type in response at {}", ip);
-                                        return Err(Error::UnknownMinerType);
+                                        return Err(Error::UnknownMinerType("Miner did not include type in response".into()));
                                     }
                                 }
                                 _ => {} // We don't care about the other stats
                             }
                         }
                         debug!("Stats did not include a section containing type at {}\n{}", ip, resp);
-                        return Err(Error::UnknownMinerType);
+                        return Err(Error::UnknownMinerType("Stats did not include a section containing type".into()));
                     } else {
                         debug!("Unable to parse stats response at {}\n{}", ip, resp);
-                        return Err(Error::UnknownMinerType);
+                        return Err(Error::UnknownMinerType("Unable to parse stats response".into()));
                     }
                 } else if let Ok(status) = serde_json::from_str::<common::Status>(&resp) {
                     // Whatsminer returns just the cgminer status error with invalid json and a description containing whatsminer
@@ -255,10 +255,10 @@ impl Client {
                         }
                     }
                     debug!("Received error response but not whatsminer at {}\n{}", ip, resp);
-                    return Err(Error::UnknownMinerType);
+                    return Err(Error::UnknownMinerType("Received error response but not whatsminer".into()));
                 } else {
                     debug!("Unable to parse response from socket API: {}", resp);
-                    return Err(Error::UnknownMinerType);
+                    return Err(Error::UnknownMinerType("Unable to parse response from socket API".into()));
                 }
             }
             Err(e) => {
@@ -333,7 +333,7 @@ impl Client {
                 }
 
                 debug!("Unable to determine miner type {}", ip);
-                Err(Error::UnknownMinerType)
+                Err(Error::UnknownMinerType("".into()))
             }
             Err(e) => {
                 debug!("Error while sending request to HTTP API: {}", e);
@@ -367,9 +367,9 @@ impl Client {
                                 (Error::Timeout, Error::Timeout) => Err(Error::Timeout),
                                 (Error::Timeout, e) => Err(e),
                                 (e, Error::Timeout) => Err(e),
-                                (Error::UnknownMinerType, Error::UnknownMinerType) => Err(Error::UnknownMinerType),
-                                (Error::UnknownMinerType, _) => Err(Error::UnknownMinerType),
-                                (_, Error::UnknownMinerType) => Err(Error::UnknownMinerType),
+                                (Error::UnknownMinerType(s), Error::UnknownMinerType(s2)) => Err(Error::UnknownMinerType(format!("{} and {}", s, s2))),
+                                (Error::UnknownMinerType(s), e) => Err(Error::UnknownMinerType(format!("{} and {}", s, e))),
+                                (e, Error::UnknownMinerType(s)) => Err(Error::UnknownMinerType(format!("{} and {}", e, s))),
                                 (e, _) => { Err(e) }
                             }
                         }

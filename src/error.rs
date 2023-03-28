@@ -29,8 +29,8 @@ pub enum Error {
     // Detection errors
     #[error("No host detected")]
     NoHostDetected,
-    #[error("Unable to detect miner type")]
-    UnknownMinerType,
+    #[error("Unknown miner type {0}")]
+    UnknownMinerType(String),
     
     // Response parsing errors
     #[error("Encode error")]

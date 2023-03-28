@@ -356,7 +356,7 @@ impl Miner for Minerva {
                 //TODO: Check returned status code and return appropriate error
                 Err(Error::Unauthorized)
             } else {
-                Err(Error::UnknownMinerType)
+                Err(Error::UnknownMinerType("Not a Minerva".into()))
             }
         } else {
             Err(Error::HttpRequestFailed)
