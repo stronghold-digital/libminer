@@ -95,7 +95,7 @@ pub struct Summary {
     #[serde(rename = "Factory Error Code Count")]
     pub factory_error_code_count: Option<usize>,
     #[serde(rename = "Security Mode")]
-    pub security_mode: usize,
+    pub security_mode: Option<usize>,
     #[serde(rename = "Liquid Cooling")]
     pub liquid_cooling: Option<bool>,
     #[serde(rename = "Hash Stable")]
@@ -107,7 +107,7 @@ pub struct Summary {
     #[serde(rename = "Target Freq")]
     pub target_freq: usize,
     #[serde(rename = "Target MHS")]
-    pub target_mhs: usize,
+    pub target_mhs: f64,
     #[serde(rename = "Env Temp")]
     pub env_temp: Option<f64>,
     #[serde(rename = "Power Mode")]
@@ -148,5 +148,7 @@ mod tests {
     fn it_deserializes() {
         let input = r#"{"STATUS":[{"STATUS":"S","Msg":"Summary"}],"SUMMARY":[{"Elapsed":10256,"MHS av":86344408.19,"MHS 5s":104558122.51,"MHS 1m":87932837.07,"MHS 5m":86351357.73,"MHS 15m":86295510.58,"HS RT":86351357.73,"Accepted":786,"Rejected":2,"Total MH":885555462530.0000,"Temperature":77.75,"freq_avg":650,"Fan Speed In":2880,"Fan Speed Out":2850,"Power":3431,"Power Rate":39.73,"Pool Rejected%":0.2611,"Pool Stale%":0.0000,"Uptime":10974,"Security Mode":0,"Hash Stable":true,"Hash Stable Cost Seconds":426,"Hash Deviation%":0.0559,"Target Freq":637,"Target MHS":85788612,"Env Temp":13.25,"Power Mode":"Normal","Factory GHS":86022,"Power Limit":3600,"Chip Temp Min":69.19,"Chip Temp Max":97.58,"Chip Temp Avg":86.19,"Debug":"","Btminer Fast Boot":"disable"}],"id":1}"#;
         let _: SummaryResp = serde_json::from_str(input).unwrap();
+        let inpu2 = r#"{"STATUS":[{"STATUS":"S","Msg":"Summary"}],"SUMMARY":[{"Elapsed":23397,"MHS av":91598055.38,"MHS 5s":107889994.42,"MHS 1m":91464807.14,"MHS 5m":91611411.38,"MHS 15m":91577620.93,"HS RT":91611411.38,"Accepted":1713,"Rejected":3,"Total MH":2143119015066.00,"Temperature":80.00,"freq_avg":521,"Fan Speed In":3510,"Fan Speed Out":3540,"Power":3583,"Power Rate":39.12,"Pool Rejected%":0.1604,"Pool Stale%":0.0000,"Uptime":26782,"Hash Stable":true,"Hash Stable Cost Seconds":1293,"Hash Deviation%":0.1023,"Target Freq":478,"Target MHS":91370226.00,"Env Temp":13.50,"Power Mode":"Normal","Factory GHS":90859,"Power Limit":3600,"Chip Temp Min":59.46,"Chip Temp Max":106.14,"Chip Temp Avg":78.58,"Debug":"","Btminer Fast Boot":"disable"}],"id":1}"#;
+        let _: SummaryResp = serde_json::from_str(inpu2).unwrap();
     }
 }
