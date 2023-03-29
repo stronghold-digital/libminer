@@ -125,7 +125,8 @@ impl Client {
             self.connect_timeout,
             TcpStream::connect(format!("{}:{}", ip, port))
         ).await {
-            Ok(stream_result) => Ok(stream_result?),
+            Ok(Ok(stream)) => Ok(stream),
+            Ok(Err(e)) => Err(Error::NoHostDetected),
             Err(_) => Err(Error::Timeout),
         }
     }
@@ -264,8 +265,10 @@ impl Client {
                 }
             }
             Err(e) => {
-                debug!("Error while sending request to socket API: {}", e);
-                return Err(e);
+                match e {
+                    Error::NoHostDetected => Err(Error::NoMinerDetected),
+                    e => Err(e),
+                }
             }
         }
     }
