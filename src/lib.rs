@@ -89,6 +89,8 @@ impl ClientBuilder {
             .tcp_nodelay(true) // Disable Nagle's algorithm, which can cause latency issues
             .danger_accept_invalid_certs(true) // Accept self-signed certs
             .cookie_store(true) // Some miners require a cookie store
+            .pool_max_idle_per_host(0)
+            .pool_idle_timeout(Duration::from_secs(10))
             .build()?;
         let lock = {
             if self.max_connections > 0 {
