@@ -213,20 +213,18 @@ impl Miner for Antminer {
 
     async fn get_temperature(&self) -> Result<f64, Error> {
         // Antminer doesn't report a single temperature,
-        // instead return the average of the chip sensors
+        // instead return the max of the chip sensors
         let stats = self.stats().await?;
         let stats = stats.as_ref().unwrap_or_else(|| unreachable!());
 
         if let Some(stat) = stats.stats.get(0) {
-            let mut ret = 0.0;
-            let mut ntemp = 0;
-            for chain in &stat.chain {
-                for temp in &chain.temp_chip {
-                    ntemp += 1;
-                    ret += *temp as f64;
-                }
-            }
-            Ok(ret / ntemp as f64)
+            Ok(
+                stat.chain.iter()
+                    .flat_map(|c| c.temp_chip.iter())
+                    .max()
+                    .ok_or(Error::ApiCallFailed("No temperature data".to_string()))?
+                    .clone() as f64
+            )
         } else {
             //TODO: Decide to return an error or just an empty vector
             Ok(0.0)
