@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
-#[serde(from = "[u32; 6]")]
+#[serde(from = "Vec<u32>")]
 pub struct PowerSupplyInfo {
     pub err: u32,
     pub volt_cntrl: f32,
@@ -14,10 +14,11 @@ pub struct PowerSupplyInfo {
     pub current: u32,
     pub power: u32,
     pub set_volt_hash: f32,
+    pub max_power: Option<f32>,
 }
 
-impl<'a> From<[u32; 6]> for PowerSupplyInfo {
-    fn from(v: [u32; 6]) -> Self {
+impl<'a> From<Vec<u32>> for PowerSupplyInfo {
+    fn from(v: Vec<u32>) -> Self {
         PowerSupplyInfo {
             err: v[0],
             volt_cntrl: v[1] as f32 / 100.0,
@@ -25,6 +26,7 @@ impl<'a> From<[u32; 6]> for PowerSupplyInfo {
             current: v[3],
             power: v[4],
             set_volt_hash: v[5] as f32 / 100.0,
+            max_power: if v.len() == 7 { Some(v[6] as f32) } else { None },
         }
     }
 }
@@ -33,9 +35,14 @@ impl<'a> TryFrom<&'a str> for PowerSupplyInfo {
     type Error = Error;
 
     fn try_from(input: &str) -> Result<Self, Self::Error> {
-        let re = regex!(r"PS\[(\d+) (\d+) (\d+) (\d+) (\d+) (\d+)\]");
+        let re = regex!(r"PS\[(\d+) (\d+) (\d+) (\d+) (\d+) (\d+)(?: (\+d))?\]");
         let caps = re.captures(&input).ok_or(Error::InvalidResponse)?;
-        let caps = caps.iter().skip(1).map(|c| c.unwrap().as_str().parse::<u32>().unwrap()).collect::<Vec<_>>();
+        let caps = caps.iter().skip(1).filter_map(|c| 
+            match c {
+                Some(c) => Some(c.as_str().parse::<u32>().unwrap()),
+                None => None
+            }
+        ).collect::<Vec<_>>();
         Ok(Self {
             err: caps[0],
             volt_cntrl: caps[1] as f32 / 100.0,
@@ -43,6 +50,7 @@ impl<'a> TryFrom<&'a str> for PowerSupplyInfo {
             current: caps[3],
             power: caps[4],
             set_volt_hash: caps[5] as f32 / 100.0,
+            max_power: if caps.len() == 7 { Some(caps[6] as f32) } else { None },
         })
     }
 }
@@ -58,7 +66,7 @@ impl TryFrom<StatusResp> for PowerSupplyInfo {
 
         // Parse message
         // ASC 0 set info: PS[0 1197 1249 260 3247 1248]
-        let re = regex!(r"ASC \d+ set info: (PS\[\d+ \d+ \d+ \d+ \d+ \d+\])");
+        let re = regex!(r"ASC \d+ set info: (PS\[\d+ \d+ \d+ \d+ \d+ \d+(?: \d+)?\])");
         let caps = re.captures(&status.msg).ok_or(Error::InvalidResponse)?;
         Self::try_from(caps.get(1).unwrap_or_else(|| unreachable!()).as_str())
     }
@@ -77,6 +85,10 @@ impl PowerSupplyInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[derive(Debug, Deserialize)]
+    struct Test {
+        pub PS: PowerSupplyInfo,
+    }
 
     #[test]
     fn it_parses_good_response() {
@@ -104,11 +116,6 @@ mod tests {
         use crate::miners::avalon::cgminer::de;
         let input = "PS[0 1197 1249 260 3247 1248]";
 
-        #[derive(Debug, Deserialize)]
-        struct Test {
-            pub PS: PowerSupplyInfo,
-        }
-
         let test: Test = de::from_str(input).unwrap();
         assert_eq!(test.PS.err, 0);
         assert_eq!(test.PS.volt_cntrl, 11.97);
@@ -116,5 +123,14 @@ mod tests {
         assert_eq!(test.PS.current, 260);
         assert_eq!(test.PS.power, 3247);
         assert_eq!(test.PS.set_volt_hash, 12.48);
+    }
+
+    #[test]
+    fn it_parses2() {
+        use crate::miners::avalon::cgminer::de;
+        let input = "PS[0 1201 1251 256 3202 1252 3603]";
+        
+        let test: Test = de::from_str(input).unwrap();
+        assert_eq!(test.PS.err, 0);
     }
 }
