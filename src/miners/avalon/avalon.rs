@@ -181,7 +181,7 @@ impl Miner for Avalon {
         Err(Error::NotSupported)
     }
 
-    async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
+    async fn set_pools(&mut self, _pools: Vec<Pool>) -> Result<(), Error> {
         Err(Error::NotSupported)
     }
 

@@ -2,7 +2,7 @@ use lazy_regex::regex;
 
 use crate::miner::MinerError;
 
-pub static WhatsminerErrors: [MinerError; 67] = [
+pub static WHATSMINER_ERRORS: [MinerError; 67] = [
     MinerError {
         re: regex!(r"1[0-3](0|1)"),
         msg: "Fan {} speed error",

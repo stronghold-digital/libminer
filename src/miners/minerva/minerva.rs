@@ -11,6 +11,7 @@ use crate::Client;
 use crate::miner::{Miner, Pool};
 use crate::error::Error;
 use crate::miners::minerva::{cgminer, minera};
+use crate::miners::minerva::error::{MINERVA_ERRORS, MINERA_ERRORS};
 use crate::miners::common;
 
 /// 4 fan Minervas use this interface
@@ -157,10 +158,11 @@ impl Miner for Minera {
             let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
             Ok(stat.power_consumption)
         } else {
-        // Guess at power consumption
-        // There are 3 models with efficiencies ranging from 31 - 39 J/TH
-        // Assume the middle of the road 35 J/TH
-        Ok(self.get_hashrate().await? * 35.0)
+            // Guess at power consumption
+            // There are 3 models with efficiencies ranging from 31 - 39 J/TH
+            // Assume the middle of the road 35 J/TH
+            Ok(self.get_hashrate().await? * 35.0)
+        }
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {
@@ -268,7 +270,7 @@ impl Miner for Minera {
         Err(Error::NotSupported)
     }
 
-    async fn set_blink(&mut self, blink: bool) -> Result<(), Error> {
+    async fn set_blink(&mut self, _blink: bool) -> Result<(), Error> {
         Err(Error::NotSupported)
     }
 
@@ -307,7 +309,7 @@ impl Miner for Minera {
             .collect::<Vec<String>>()
             .join("\n");
         let mut errors = HashSet::new();
-        for err in MineraErrors.iter() {
+        for err in MINERA_ERRORS.iter() {
             if let Some(msg) = err.get_msg(&log) {
                 errors.insert(msg);
             }
@@ -400,7 +402,7 @@ impl Miner for Minerva {
 
     async fn reboot(&mut self) -> Result<(), Error> {
         //TODO: This always times out as the API reboots before responding
-        let resp = self.client.http_client
+        let _ = self.client.http_client
             .post(&format!("https://{}:/api/v1/cgminer/reboot", self.ip))
             .bearer_auth(&self.token)
             .send()
@@ -419,7 +421,7 @@ impl Miner for Minerva {
             if let Ok(summary) = serde_json::from_str::<cgminer::SummaryResp>(&text) {
                 // Convert to TH/s
                 Ok(summary.data[0].mhs_5s / 1000000.0)
-            } else if let Ok(status) = serde_json::from_str::<cgminer::ApiResp>(&text) {
+            } else if let Ok(_) = serde_json::from_str::<cgminer::ApiResp>(&text) {
                 // The miners up but didn't give us a great response, so just return 0
                 Ok(0.0)
             } else {
@@ -638,7 +640,7 @@ impl Miner for Minerva {
             .await?;
         if resp.status().is_success() {
             let network = resp.json::<cgminer::NetworkResponse>().await?;
-            Ok(network.data.hardwareAddress)
+            Ok(network.data.hardware_address)
         } else {
             Err(Error::HttpRequestFailed)
         }
@@ -647,7 +649,7 @@ impl Miner for Minerva {
     async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
         let log = self.get_logs().await?.join("\n");
         let mut errors = HashSet::new();
-        for err in MinerVaErrors.iter() {
+        for err in MINERVA_ERRORS.iter() {
             if let Some(msg) = err.get_msg(&log) {
                 errors.insert(msg);
             }

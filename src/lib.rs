@@ -126,7 +126,7 @@ impl Client {
             TcpStream::connect(format!("{}:{}", ip, port))
         ).await {
             Ok(Ok(stream)) => Ok(stream),
-            Ok(Err(e)) => Err(Error::NoHostDetected),
+            Ok(Err(_)) => Err(Error::NoHostDetected),
             Err(_) => Err(Error::Timeout),
         }
     }

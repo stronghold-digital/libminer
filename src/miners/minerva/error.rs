@@ -2,7 +2,7 @@ use lazy_regex::regex;
 
 use crate::miner::MinerError;
 
-pub static MineraErrors: [MinerError; 4] = [
+pub static MINERA_ERRORS: [MinerError; 4] = [
     MinerError {
         re: regex!(r"power up to.+failed read_bak"),
         msg: "PSU failed to power up",
@@ -21,7 +21,7 @@ pub static MineraErrors: [MinerError; 4] = [
     },
 ];
 
-pub static MinerVaErrors: [MinerError; 9] = [
+pub static MINERVA_ERRORS: [MinerError; 9] = [
     MinerError {
         re: regex!(r".+Error: fan ([0-9]) failed"),
         msg: "Fan {} failed",

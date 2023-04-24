@@ -4,10 +4,13 @@ use serde::Deserialize;
 pub struct Network {
     pub dhcp4: bool,
     pub dns: String,
-    pub dnsBak: String,
+    #[serde(rename = "dnsBak")]
+    pub dns_bak: String,
     pub gateway: String,
-    pub hardwareAddress: String,
-    pub interfaceName: String,
+    #[serde(rename = "hardwareAddress")]
+    pub hardware_address: String,
+    #[serde(rename = "interfaceName")]
+    pub interface_name: String,
     pub ip: String,
     pub netmask: String,
 }

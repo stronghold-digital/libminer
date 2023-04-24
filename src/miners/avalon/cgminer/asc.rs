@@ -87,7 +87,8 @@ mod tests {
     use super::*;
     #[derive(Debug, Deserialize)]
     struct Test {
-        pub PS: PowerSupplyInfo,
+        #[serde(rename = "PS")]
+        pub ps: PowerSupplyInfo,
     }
 
     #[test]
@@ -117,12 +118,12 @@ mod tests {
         let input = "PS[0 1197 1249 260 3247 1248]";
 
         let test: Test = de::from_str(input).unwrap();
-        assert_eq!(test.PS.err, 0);
-        assert_eq!(test.PS.volt_cntrl, 11.97);
-        assert_eq!(test.PS.volt_hash, 12.49);
-        assert_eq!(test.PS.current, 260);
-        assert_eq!(test.PS.power, 3247);
-        assert_eq!(test.PS.set_volt_hash, 12.48);
+        assert_eq!(test.ps.err, 0);
+        assert_eq!(test.ps.volt_cntrl, 11.97);
+        assert_eq!(test.ps.volt_hash, 12.49);
+        assert_eq!(test.ps.current, 260);
+        assert_eq!(test.ps.power, 3247);
+        assert_eq!(test.ps.set_volt_hash, 12.48);
     }
 
     #[test]
@@ -131,6 +132,6 @@ mod tests {
         let input = "PS[0 1201 1251 256 3202 1252 3603]";
         
         let test: Test = de::from_str(input).unwrap();
-        assert_eq!(test.PS.err, 0);
+        assert_eq!(test.ps.err, 0);
     }
 }

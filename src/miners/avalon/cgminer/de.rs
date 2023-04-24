@@ -1,9 +1,8 @@
 use std::{fmt, u8};
 use serde::Deserialize;
 use serde::de::{
-    self, DeserializeSeed, IntoDeserializer,
-    MapAccess, SeqAccess, VariantAccess, Visitor,
-    Expected, Unexpected,
+    self, DeserializeSeed,
+    MapAccess, SeqAccess, Visitor,
 };
 
 // Avalon doesn't even return proper JSON,
@@ -134,7 +133,7 @@ impl Number {
         V: Visitor<'de>,
     {
         match self {
-            Number::F64(f) => Err(Error::new(ErrorCode::InvalidNumber, 0)),
+            Number::F64(_) => Err(Error::new(ErrorCode::InvalidNumber, 0)),
             Number::U64(u) => visitor.visit_u64(u),
             Number::I64(i) => visitor.visit_u64(i as u64),
         }
@@ -156,7 +155,7 @@ impl Number {
         V: Visitor<'de>,
     {
         match self {
-            Number::F64(f) => Err(Error::new(ErrorCode::InvalidNumber, 0)),
+            Number::F64(_) => Err(Error::new(ErrorCode::InvalidNumber, 0)),
             Number::U64(u) => visitor.visit_i64(u as i64),
             Number::I64(i) => visitor.visit_i64(i),
         }

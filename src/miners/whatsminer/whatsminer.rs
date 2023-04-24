@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use phf::phf_map;
 
 use crate::{Client, Miner, error::Error, Pool, miners::common, miners::whatsminer::wmapi, Cache, CacheItem};
-use super::{error::WhatsminerErrors, wmapi::StatusCode};
+use super::{error::WHATSMINER_ERRORS, wmapi::StatusCode};
 
 // (J/TH, Datasheet TH)
 static EFF_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
@@ -220,7 +220,7 @@ impl Miner for Whatsminer {
         let js = json!({
             "command": "reboot",
         });
-        let resp = self.send_recv_enc(js).await?;
+        let _ = self.send_recv_enc(js).await?;
         Ok(())
     }
 
@@ -281,7 +281,7 @@ impl Miner for Whatsminer {
         // Whatsminers don't have fan pwm, max fan speed is 7000 RPM
         self.get_fan_speed().await?.iter()
             .max()
-            .map(|x| *x as f64 / 7000.0)
+            .map(|x| (*x as f64 / 7000.0) * 100.0)
             .ok_or(Error::ApiCallFailed("No fan speed".to_string()))
     }
 
@@ -309,7 +309,7 @@ impl Miner for Whatsminer {
             "worker3": pools[2].username,
             "passwd3": pools[2].password,
         });
-        let resp = self.send_recv_enc(js).await?;
+        let _ = self.send_recv_enc(js).await?;
         self.invalidate().await;
         Ok(())
     }
@@ -361,7 +361,7 @@ impl Miner for Whatsminer {
 
     async fn get_blink(&self) -> Result<bool, Error> {
         let resp = self.send_recv(&json!({"cmd":"get_miner_info"})).await?;
-        if let Ok(status) = serde_json::from_str::<wmapi::Status>(&resp) {
+        if let Ok(_) = serde_json::from_str::<wmapi::Status>(&resp) {
             // We could error or assume not hashing
             // Err(Error::ApiCallFailed(status.msg))
             Ok(false)
@@ -385,7 +385,7 @@ impl Miner for Whatsminer {
                 "param": "auto",
             }),
         };
-        let resp = self.send_recv_enc(js).await?;
+        let _ = self.send_recv_enc(js).await?;
         //println!("{}", resp);
         Ok(())
     }
@@ -449,7 +449,7 @@ impl Miner for Whatsminer {
             .collect::<Vec<String>>()
             .join("\n");
         let mut errors = HashSet::new();
-        for err in WhatsminerErrors.iter() {
+        for err in WHATSMINER_ERRORS.iter() {
             if let Some(msg) = err.get_msg(&log) {
                 errors.insert(msg);
             }

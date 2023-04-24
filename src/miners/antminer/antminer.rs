@@ -11,7 +11,7 @@ use crate::miner::{Miner, Pool};
 use crate::miners::antminer::cgi;
 use crate::error::Error;
 use crate::Client;
-use crate::miners::antminer::error::AntminerErrors;
+use crate::miners::antminer::error::ANTMINER_ERRORS;
 
 use super::cgi::SetConf;
 
@@ -125,7 +125,7 @@ impl Antminer {
 
 #[async_trait]
 impl Miner for Antminer {
-    fn new(client: Client, ip: String, port: u16) -> Self {
+    fn new(client: Client, ip: String, _port: u16) -> Self {
         Antminer {
             ip,
             username: "".to_string(),
@@ -355,7 +355,7 @@ impl Miner for Antminer {
     async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
         let log = self.get_logs().await?.join("\n");
         let mut errors = HashSet::new();
-        for err in AntminerErrors.iter() {
+        for err in ANTMINER_ERRORS.iter() {
             if let Some(msg) = err.get_msg(&log) {
                 errors.insert(msg);
             }
