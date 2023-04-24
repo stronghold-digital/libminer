@@ -171,6 +171,12 @@ impl Miner for Avalon {
         ])
     }
 
+    async fn get_fan_pwm(&self) -> Result<f64, Error> {
+        let estats = self.get_estats().await?;
+        let estats = estats.as_ref().unwrap_or_else(|| unreachable!());
+        Ok(estats.fanr)
+    }
+
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
         Err(Error::NotSupported)
     }

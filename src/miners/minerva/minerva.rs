@@ -11,7 +11,7 @@ use crate::Client;
 use crate::miner::{Miner, Pool};
 use crate::error::Error;
 use crate::miners::minerva::{cgminer, minera};
-use crate::miners::minerva::error::{MinerVaErrors, MineraErrors};
+use crate::miners::common;
 
 /// 4 fan Minervas use this interface
 pub struct Minera {
@@ -20,6 +20,7 @@ pub struct Minera {
     client: Client,
 
     stats: Mutex<Option<minera::StatsResp>>,
+    cg_stats: Mutex<Option<common::MvStats>>,
 }
 
 impl Minera {
@@ -35,6 +36,27 @@ impl Minera {
                 *stats = Some(stat);
             } else {
                 return Err(Error::HttpRequestFailed);
+            }
+        }
+        Ok(stats)
+    }
+
+    async fn get_cg_stats(&self) -> Result<MutexGuard<Option<common::MvStats>>, Error> {
+        let mut stats = self.cg_stats.lock().await;
+        if stats.is_none() {
+            let resp = self.client.send_recv(&self.ip, self.port, &json!({"command":"stats"})).await?;
+            let cg_stat: common::StatsResp = serde_json::from_str(&resp)?;
+            if cg_stat.stats.is_none() {
+                return Err(Error::InvalidResponse);
+            }
+            let mut cg_stat = cg_stat.stats.unwrap_or_else(|| unreachable!());
+            match cg_stat.remove(0) {
+                common::Stats::MvStats(stat) => {
+                    *stats = Some(stat);
+                }
+                _ => {
+                    return Err(Error::InvalidResponse);
+                }
             }
         }
         Ok(stats)
@@ -74,6 +96,7 @@ impl Miner for Minera {
             port,
             client,
             stats: Mutex::new(None),
+            cg_stats: Mutex::new(None),
         }
     }
 
@@ -130,6 +153,10 @@ impl Miner for Minera {
     }
 
     async fn get_power(&self) -> Result<f64, Error> {
+        if let Ok(stat) = self.get_cg_stats().await {
+            let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
+            Ok(stat.power_consumption)
+        } else {
         // Guess at power consumption
         // There are 3 models with efficiencies ranging from 31 - 39 J/TH
         // Assume the middle of the road 35 J/TH
@@ -159,7 +186,15 @@ impl Miner for Minera {
     }
 
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error> {
-        Ok(vec![])
+        let stat = self.get_cg_stats().await?;
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
+        Ok(vec![stat.fan0_speed])
+    }
+
+    async fn get_fan_pwm(&self) -> Result<f64, Error> {
+        let stat = self.get_cg_stats().await?;
+        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
+        Ok(stat.fan_duty)
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
@@ -439,6 +474,14 @@ impl Miner for Minerva {
         } else {
             Err(Error::HttpRequestFailed)
         }
+    }
+
+    async fn get_fan_pwm(&self) -> Result<f64, Error> {
+        // Minerva doesn't report a fan PWM, max fan speed is 6000 RPM
+        self.get_fan_speed().await?.iter()
+            .max()
+            .map(|&x| (x as f64 / 6000.0) * 100.0)
+            .ok_or(Error::ApiCallFailed("No fan speed reported".to_string()))
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {

@@ -277,6 +277,14 @@ impl Miner for Whatsminer {
         Ok(vec![sum.summary[0].fan_speed_in, sum.summary[0].fan_speed_out])
     }
 
+    async fn get_fan_pwm(&self) -> Result<f64, Error> {
+        // Whatsminers don't have fan pwm, max fan speed is 7000 RPM
+        self.get_fan_speed().await?.iter()
+            .max()
+            .map(|x| *x as f64 / 7000.0)
+            .ok_or(Error::ApiCallFailed("No fan speed".to_string()))
+    }
+
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
         let resp = self.send_recv(&json!({"cmd":"pools"})).await?;
         let pools: common::PoolsResp = serde_json::from_str(&resp)?;

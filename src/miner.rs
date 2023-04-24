@@ -76,6 +76,8 @@ pub trait Miner {
 
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error>;
 
+    async fn get_fan_pwm(&self) -> Result<f64, Error>;
+
     async fn get_pools(&self) -> Result<Vec<Pool>, Error>;
 
     async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error>;
@@ -113,7 +115,7 @@ impl LockMiner {
 
 #[async_trait]
 impl Miner for LockMiner {
-    fn new(client: Client, ip: String, port: u16) -> Self
+    fn new(_client: Client, _ip: String, _port: u16) -> Self
         where Self: Sized {
             unimplemented!();
         }
@@ -156,6 +158,10 @@ impl Miner for LockMiner {
 
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error> {
         self.miner.get_fan_speed().await
+    }
+
+    async fn get_fan_pwm(&self) -> Result<f64, Error> {
+        self.miner.get_fan_pwm().await
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {

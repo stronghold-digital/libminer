@@ -18,16 +18,17 @@ use super::cgi::SetConf;
 /// Antminer models and their rated watt per TH
 /// If more than 1 variant exists, this will be an average of all variants
 /// Antminer rates these @25C
-static POWER_MAP: phf::Map<&'static str, f64> = phf_map! {
-    "t19" => 37.5,
-    "s19" => 34.7,
-    "s19j" => 34.5,
-    "s19a" => 34.5,
-    "s19pro" => 30.0,
-    "s19jpro" => 29.5,
-    "s19apro" => 29.5,
-    "s19jpro+" => 27.5,
-    "s19xp" => 22.0,
+/// Second number is max fan speed
+static POWER_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
+    "t19" => (37.5, 6000.0),
+    "s19" => (34.7, 6000.0),
+    "s19j" => (34.5, 6000.0),
+    "s19a" => (34.5, 7100.0),
+    "s19pro" => (30.0, 6000.0),
+    "s19jpro" => (29.5, 6000.0),
+    "s19apro" => (29.5, 6000.0),
+    "s19jpro+" => (27.5, 6000.0),
+    "s19xp" => (22.0, 6000.0),
 };
 
 pub struct Antminer {
@@ -188,7 +189,7 @@ impl Miner for Antminer {
         match self.get_hashrate().await {
             Ok(hashrate) => {
                 let model = self.get_model().await?;
-                Ok(hashrate * POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?)
+                Ok(hashrate * POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?.0)
             },
             Err(e) => Err(e),
         }
@@ -196,7 +197,7 @@ impl Miner for Antminer {
 
     async fn get_efficiency(&self) -> Result<f64, Error> {
         let model = self.get_model().await?;
-        Ok(*POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?)
+        Ok(POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?.0)
     }
 
     async fn get_nameplate_rate(&self) -> Result<f64, Error> {
@@ -242,6 +243,16 @@ impl Miner for Antminer {
             //TODO: Decide to return an error or just an empty vector
             Ok(vec![])
         }
+    }
+
+    async fn get_fan_pwm(&self) -> Result<f64, Error> {
+        // Antminer doesn't report a single fan pwm, max fan speed varies by model
+        let model = self.get_model().await?;
+        let fan_speed = POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?.1;
+        self.get_fan_speed().await?.iter()
+            .max()
+            .map(|&s| (s as f64 / fan_speed) * 100.0)
+            .ok_or(Error::ApiCallFailed("No fan speed data".to_string()))
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
