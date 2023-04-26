@@ -377,6 +377,7 @@ impl Client {
                                 (Error::Timeout, Error::Timeout) => Err(Error::Timeout),
                                 (Error::Timeout, e) => Err(e),
                                 (e, Error::Timeout) => Err(e),
+                                (Error::NoMinerDetected, Error::NoMinerDetected) => Err(Error::NoMinerDetected),
                                 (Error::UnknownMinerType(s), Error::UnknownMinerType(s2)) => Err(Error::UnknownMinerType(format!("{} and {}", s, s2))),
                                 (Error::UnknownMinerType(s), e) => Err(Error::UnknownMinerType(format!("{} and {}", s, e))),
                                 (e, Error::UnknownMinerType(s)) => Err(Error::UnknownMinerType(format!("{} and {}", e, s))),

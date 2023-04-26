@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer, de::Error};
 
 use super::Status;
 
@@ -17,7 +17,7 @@ pub struct Summary {
     #[serde(rename = "MHS 15m")]
     pub mhs_15m: f64,
     #[serde(rename = "HS RT")]
-    pub hs_rt: f64,
+    pub hs_rt: Option<f64>,
     #[serde(rename = "Found Blocks")]
     pub found_blocks: Option<usize>,
     #[serde(rename = "Getworks")]
@@ -81,8 +81,8 @@ pub struct Summary {
     pub last_getwork: Option<usize>,
     #[serde(rename = "Uptime")]
     pub uptime: usize,
-    #[serde(rename = "Power Current")]
-    pub power_current: Option<f64>,
+    // #[serde(rename = "Power Current")]
+    // pub power_current: Option<f64>,
     #[serde(rename = "Power Fanspeed")]
     pub power_fanspeed: Option<f64>,
     //TODO: Error codes are reported like this
@@ -130,6 +130,15 @@ pub struct Summary {
     pub debug: Option<String>,
     #[serde(rename = "Btminer Fast Boot")]
     pub fast_boot: Option<String>,
+}
+
+impl Summary {
+    pub fn hashrate_ths(&self) -> f64 {
+        match self.hs_rt {
+            Some(hs_rt) => hs_rt / 1000000.0,
+            None => self.mhs_5s / 1000000.0,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
