@@ -228,7 +228,7 @@ impl Miner for Whatsminer {
     async fn get_hashrate(&self) -> Result<f64, Error> {
         let sum = self.get_summary().await?;
         let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(sum.summary[0].hashrate_ths() / 1000000.0)
+        Ok(sum.summary[0].hashrate_ths())
     }
 
     async fn get_power(&self) -> Result<f64, Error> {
@@ -242,7 +242,7 @@ impl Miner for Whatsminer {
         if let Ok(sum) = self.get_summary().await {
             let sum = sum.as_ref().unwrap_or_else(|| unreachable!());
             if sum.summary[0].hashrate_ths() > 0.0 {
-                return Ok(sum.summary[0].power as f64 / (sum.summary[0].hashrate_ths() as f64 / 1000000.0));
+                return Ok(sum.summary[0].power as f64 / (sum.summary[0].hashrate_ths()));
             }
         }
         // If we're not hashing return the dataspec efficiency
