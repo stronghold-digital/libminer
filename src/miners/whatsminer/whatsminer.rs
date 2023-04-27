@@ -320,23 +320,33 @@ impl Miner for Whatsminer {
             return Ok(false);
         }
         //This doesn't work for miners running cgminer
-        let resp = self.send_recv(&json!({"cmd":"status"})).await?;
-        if let Ok(btstatus) = serde_json::from_str::<wmapi::BtStatusResp>(&resp) {
-            if !btstatus.msg.btmineroff {
-                return Ok(false);
+        let resp = self.send_recv(&json!({"cmd":"status"})).await;
+        println!("{:?}", resp);
+        let sleep_stat = match resp {
+            Ok(resp) => match serde_json::from_str::<wmapi::BtStatusResp>(&resp) {
+                Ok(s) => s.msg.btmineroff,
+                Err(_) => true,
             }
+            Err(_) => true,
+        };
+        // We know for sure we're awake if btmineroff is false
+        if !sleep_stat {
+            return Ok(false);
         }
         
         // Double check that cgminer isn't running
         // Scrape the web API yet again
-        let r = self.client.http_client
-        .get(&format!("https://{}/cgi-bin/luci/admin/status/processes", self.ip))
+        if let Ok(r) = self.client.http_client
+            .get(&format!("https://{}/cgi-bin/luci/admin/status/processes", self.ip))
             .send()
-            .await?
-            .text()
-            .await?;
-        let re = regex!(r#".COMMAND" value="(cg|bt)miner" />"#);
-        Ok(!re.is_match(&r))
+            .await {
+                if let Ok(r) = r.text().await {
+                    let re = regex!(r#".COMMAND" value="(cg|bt)miner" />"#);
+                    return Ok(!re.is_match(&r));
+                }
+            }
+        // If we can't scrape the web API, return btstatus
+        return Ok(sleep_stat)
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
