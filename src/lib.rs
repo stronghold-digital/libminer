@@ -291,12 +291,25 @@ impl Client {
                         }
                     }
                 }
+                #[cfg(feature = "vnish")]
+                {
+                    debug!("Checking for VNISH...");
+                    if let Ok(resp) = self.http_client.get(&format!("http://{}/", ip)).send().await {
+                        let re = regex!(r"miner-dash-app");
+                        if re.is_match(&resp.text().await?) {
+                            debug!("Found VNISH at {}", ip);
+                            return Ok(Box::new(vnish::Vnish::new(self.clone(), ip.into(), port)));
+                        }
+                    }
+                }
                 #[cfg(feature = "avalon")]
                 {
                     let re = regex!(r"<title>Avalon Device</title>");
-                    if re.is_match(&resp.text().await?) {
-                        debug!("Found Avalon at {}", ip);
-                        return Ok(Box::new(avalon::Avalon::new(self.clone(), ip.into(), port)));
+                    if let Ok(resp) = self.http_client.get(&format!("http://{}/", ip)).send().await {
+                        if re.is_match(&resp.text().await?) {
+                            debug!("Found Avalon at {}", ip);
+                            return Ok(Box::new(avalon::Avalon::new(self.clone(), ip.into(), port)));
+                        }
                     }
                 }
                 #[cfg(feature = "minerva")]

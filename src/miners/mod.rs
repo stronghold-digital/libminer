@@ -8,3 +8,5 @@ pub mod minerva;
 pub mod antminer;
 #[cfg(feature = "whatsminer")]
 pub mod whatsminer;
+#[cfg(feature = "vnish")]
+pub mod vnish;
