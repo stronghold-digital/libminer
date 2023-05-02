@@ -224,7 +224,7 @@ impl Miner for Vnish {
     }
 
     async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
-        todo!();
+        Err(Error::NotSupported)
     }
 
     async fn get_sleep(&self) -> Result<bool, Error> {
@@ -307,7 +307,7 @@ impl Miner for Vnish {
     }
 
     async fn get_logs(&mut self) -> Result<Vec<String>, Error> {
-        todo!()
+        Ok(vec![])
     }
 
     async fn get_mac(&self) -> Result<String, Error> {
@@ -317,7 +317,7 @@ impl Miner for Vnish {
     }
 
     async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
-        todo!()
+        Ok(vec![])
     }
 
     async fn get_dns(&self) -> Result<String, Error> {
