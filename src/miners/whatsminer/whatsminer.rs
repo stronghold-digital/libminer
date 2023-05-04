@@ -11,6 +11,7 @@ use super::{error::WHATSMINER_ERRORS, wmapi::StatusCode};
 
 // (J/TH, Datasheet TH)
 static EFF_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
+    "M20S" => (48.0, 68.0),
     "M31S" => (46.0, 72.0),
     "M31S+" => (42.0, 80.0),
     "M30S" => (38.0, 88.0),
