@@ -2,8 +2,12 @@ use async_trait::async_trait;
 use crate::{Client, Miner, error::Error, Pool};
 use tokio::sync::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 mod api;
+mod error;
+
+use error::VNISH_ERRORS;
 
 pub struct Vnish {
     ip: String,
@@ -307,7 +311,18 @@ impl Miner for Vnish {
     }
 
     async fn get_logs(&mut self) -> Result<Vec<String>, Error> {
-        Ok(vec![])
+        let resp = self.client.http_client
+            .get(&format!("http://{}/api/v1/logs/miner", self.ip))
+            .bearer_auth(&self.token)
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            let logs = resp.text().await?;
+            Ok(logs.lines().map(|l| l.to_string()).collect())
+        } else {
+            Err(Error::ApiCallFailed("logs failed".into()))
+        }
     }
 
     async fn get_mac(&self) -> Result<String, Error> {
@@ -317,7 +332,24 @@ impl Miner for Vnish {
     }
 
     async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
-        Ok(vec![])
+        let resp = self.client.http_client
+            .get(&format!("http://{}/api/v1/logs/miner", self.ip))
+            .bearer_auth(&self.token)
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            let logs = resp.text().await?;
+            let mut errors = HashSet::new();
+            for err in VNISH_ERRORS.iter() {
+                if let Some(msg) = err.get_msg(&logs) {
+                    errors.insert(msg);
+                }
+            }
+            Ok(errors.into_iter().collect())
+        } else {
+            Err(Error::ApiCallFailed("logs failed".into()))
+        }
     }
 
     async fn get_dns(&self) -> Result<String, Error> {
