@@ -2,7 +2,7 @@ use lazy_regex::regex;
 
 use crate::miner::MinerError;
 
-pub static VNISH_ERRORS: [MinerError; 4] = [
+pub static VNISH_ERRORS: [MinerError; 5] = [
     MinerError {
         re: regex!(r#"chain#(\d) - Failed to init pic controller"#),
         msg: "Chain {} - Failed to init pic controller",
@@ -19,4 +19,8 @@ pub static VNISH_ERRORS: [MinerError; 4] = [
         re: regex!(r#"chain#(\d) - Chain break detected"#),
         msg: "Chain {} - Chain break detected",
     },
+    MinerError {
+        re: regex!(r#"chain#(\d) - Overheated, pcb temp=(\d+)"#),
+        msg: "Chain {} - Overheated, PCB {} C",
+    }
 ];
