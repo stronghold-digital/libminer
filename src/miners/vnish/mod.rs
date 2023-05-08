@@ -234,7 +234,7 @@ impl Miner for Vnish {
     async fn get_sleep(&self) -> Result<bool, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.miner_status.miner_state == api::StatusCode::Stopped || summary.miner.miner_status.miner_state == api::StatusCode::ShuttingDown)
+        Ok(summary.miner.miner_status.miner_state == api::StatusCode::Stopped)
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
