@@ -6,19 +6,19 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
-#[serde(from = "Vec<u32>")]
+#[serde(from = "Vec<i32>")]
 pub struct PowerSupplyInfo {
-    pub err: u32,
+    pub err: i32,
     pub volt_cntrl: f32,
     pub volt_hash: f32,
-    pub current: u32,
-    pub power: u32,
+    pub current: i32,
+    pub power: i32,
     pub set_volt_hash: f32,
     pub max_power: Option<f32>,
 }
 
-impl<'a> From<Vec<u32>> for PowerSupplyInfo {
-    fn from(v: Vec<u32>) -> Self {
+impl<'a> From<Vec<i32>> for PowerSupplyInfo {
+    fn from(v: Vec<i32>) -> Self {
         PowerSupplyInfo {
             err: v[0],
             volt_cntrl: v[1] as f32 / 100.0,
@@ -39,7 +39,7 @@ impl<'a> TryFrom<&'a str> for PowerSupplyInfo {
         let caps = re.captures(&input).ok_or(Error::InvalidResponse)?;
         let caps = caps.iter().skip(1).filter_map(|c| 
             match c {
-                Some(c) => Some(c.as_str().parse::<u32>().unwrap()),
+                Some(c) => Some(c.as_str().parse::<i32>().unwrap()),
                 None => None
             }
         ).collect::<Vec<_>>();
