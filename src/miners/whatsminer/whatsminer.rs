@@ -322,14 +322,20 @@ impl Miner for Whatsminer {
         }
         //This doesn't work for miners running cgminer
         let resp = self.send_recv(&json!({"cmd":"status"})).await;
-        println!("{:?}", resp);
         let sleep_stat = match resp {
             Ok(resp) => match serde_json::from_str::<wmapi::BtStatusResp>(&resp) {
-                Ok(s) => s.msg.btmineroff,
+                Ok(s) => {
+                    // Implicitly trust v2
+                    match s.msg {
+                        wmapi::BtStatus::V2(status) => return Ok(status.mineroff),
+                        wmapi::BtStatus::V1(status) => status.btmineroff,
+                    }
+                },
                 Err(_) => true,
             }
             Err(_) => true,
         };
+
         // We know for sure we're awake if btmineroff is false
         if !sleep_stat {
             return Ok(false);
@@ -360,13 +366,26 @@ impl Miner for Whatsminer {
                 "cmd": "power_on",
             }),
         };
-        let resp = self.send_recv_enc(js).await?;
-        let stat = serde_json::from_str::<wmapi::Status>(&resp)?;
-        if stat.status == StatusCode::SUCC {
-            self.invalidate().await;
-            Ok(())
-        } else {
-            Err(Error::ApiCallFailed(stat.msg))
+        let resp = self.send_recv_enc(js).await;
+        match (sleep, resp) {
+            (true, Err(e)) => {
+                // If the error was a timeout assume we're sleeping
+                if let Error::Timeout = e {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            },
+            (_, Ok(resp)) => {
+                let stat = serde_json::from_str::<wmapi::Status>(&resp)?;
+                if stat.status == StatusCode::SUCC {
+                    self.invalidate().await;
+                    Ok(())
+                } else {
+                    Err(Error::ApiCallFailed(stat.msg))
+                }
+            },
+            (_, Err(e)) => Err(e),
         }
     }
 
