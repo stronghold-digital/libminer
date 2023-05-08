@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use lazy_regex::regex;
 use reqwest::multipart::Form;
 use serde_json::json;
 use tracing::{warn, error};
@@ -433,14 +434,32 @@ impl Miner for Minerva {
     }
 
     async fn get_power(&self) -> Result<f64, Error> {
-        // Guess at power consumption
-        // There are 3 models with efficiencies ranging from 31 - 39 J/TH
-        // Assume the middle of the road 35 J/TH
-        Ok(self.get_hashrate().await? * 35.0)
+        // Turns out 2 fans report power consumption at port 9999
+        let resp = self.client.http_client
+            .get(&format!("http://{}:9999/", self.ip))
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            let re = regex!(r#"<td>([\d.]+) W</td>"#);
+            let text = resp.text().await?;
+            if let Some(caps) = re.captures(&text) {
+                Ok(caps.get(1).unwrap().as_str().parse::<f64>().unwrap())
+            } else {
+                Err(Error::ApiCallFailed("No power consumption reported".to_string()))
+            }
+        } else {
+            Err(Error::HttpRequestFailed)
+        }
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {
-        Ok(35.0)
+        let hashrate = self.get_hashrate().await?;
+        if hashrate > 0.0 {
+            Ok(self.get_power().await? / hashrate)
+        } else {
+            Ok(0.0)
+        }
     }
 
     async fn get_nameplate_rate(&self) -> Result<f64, Error> {
@@ -479,11 +498,23 @@ impl Miner for Minerva {
     }
 
     async fn get_fan_pwm(&self) -> Result<f64, Error> {
-        // Minerva doesn't report a fan PWM, max fan speed is 6000 RPM
-        self.get_fan_speed().await?.iter()
-            .max()
-            .map(|&x| (x as f64 / 6000.0) * 100.0)
-            .ok_or(Error::ApiCallFailed("No fan speed reported".to_string()))
+        // Turnes out minervas report pwm at port 9999
+        let resp = self.client.http_client
+            .get(&format!("http://{}:9999/", self.ip))
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            let re = regex!(r#"风扇控制<.td><td>([\d.]+)"#);
+            let text = resp.text().await?;
+            if let Some(caps) = re.captures(&text) {
+                Ok(caps.get(1).unwrap().as_str().parse::<f64>().unwrap())
+            } else {
+                Err(Error::ApiCallFailed("No fan pwm reported".to_string()))
+            }
+        } else {
+            Err(Error::HttpRequestFailed)
+        }
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
