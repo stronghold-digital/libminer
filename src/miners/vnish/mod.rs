@@ -234,7 +234,12 @@ impl Miner for Vnish {
     async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
         let js = json!({
             "miner": {
-                "pools": pools,
+                "pools": pools.into_iter().enumerate().map(|(i, p)| api::VPool {
+                    url: p.url,
+                    user: p.username,
+                    pass: p.password.unwrap_or("".into()),
+                    order: i,
+                }).collect::<Vec<_>>(),
             }
         });
 

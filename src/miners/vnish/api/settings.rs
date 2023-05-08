@@ -2,6 +2,14 @@ use serde::{Deserialize, de::Deserializer, Serialize, ser::Serializer};
 
 use crate::Pool;
 
+#[derive(Serialize)]
+pub struct VPool {
+    pub url: String,
+    pub user: String,
+    pub pass: String,
+    pub order: usize,
+}
+
 #[derive(Deserialize, Serialize)]
 struct ICoolingMode {
     name: String,
