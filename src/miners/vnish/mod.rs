@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use lazy_regex::regex;
 use crate::{Client, Miner, error::Error, Pool};
 use tokio::sync::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
@@ -332,24 +333,22 @@ impl Miner for Vnish {
     }
 
     async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
-        let resp = self.client.http_client
-            .get(&format!("http://{}/api/v1/logs/miner", self.ip))
-            .bearer_auth(&self.token)
-            .send()
-            .await?;
+        let logs = self.get_logs().await?.join("\n");
+        // Only search since the last time we started up
+        let re = regex!(r"INFO: Initializing PSU");
+        let start = re.find_iter(&logs).last().map(|m| m.start()).unwrap_or(0);
+        let logs = &logs[start..];
 
-        if resp.status().is_success() {
-            let logs = resp.text().await?;
-            let mut errors = HashSet::new();
-            for err in VNISH_ERRORS.iter() {
-                if let Some(msg) = err.get_msg(&logs) {
-                    errors.insert(msg);
-                }
+        let mut errors = HashSet::new();
+        for err in VNISH_ERRORS.iter() {
+            let mut logs = logs;
+            while let Some(msg) = err.get_msg(&logs) {
+                let end = err.re.find(&logs).unwrap().end();
+                logs = &logs[end..];
+                errors.insert(msg);
             }
-            Ok(errors.into_iter().collect())
-        } else {
-            Err(Error::ApiCallFailed("logs failed".into()))
         }
+        Ok(errors.into_iter().collect())
     }
 
     async fn get_dns(&self) -> Result<String, Error> {
