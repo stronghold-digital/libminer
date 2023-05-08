@@ -229,7 +229,25 @@ impl Miner for Vnish {
     }
 
     async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
-        Err(Error::NotSupported)
+        let js = json!({
+            "miner": {
+                "pools": pools,
+            }
+        });
+
+        let resp = self.client.http_client
+            .post(&format!("http://{}/api/v1/settings", self.ip))
+            .bearer_auth(&self.token)
+            .json(&js)
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            self.invalidate().await?;
+            Ok(())
+        } else {
+            Err(Error::ApiCallFailed("settings".into()))
+        }
     }
 
     async fn get_sleep(&self) -> Result<bool, Error> {
