@@ -66,7 +66,7 @@ pub struct DevFee {
 pub struct MiscSettings {
     pub asic_boost: bool,
     pub restart_hashrate: i64,
-    pub restart_temperature: i64,
+    pub restart_temp: i64,
     pub disable_restart_unbalanced: bool,
     pub disable_chain_break_protection: bool,
     pub max_restart_attempts: usize,
@@ -99,13 +99,13 @@ pub struct OverclockSettings {
 pub struct HotelPool {
     pub url: String,
     pub worker: String,
-    pub percent: u8,
+    pub percent: f64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct HotelFee {
-    pub enabled: bool,
-    pub pool: Pool,
+    pub enable: bool,
+    pub pool: HotelPool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -157,5 +157,20 @@ pub struct Settings {
     // ui - UI shit we don't care about
     pub regional: RegionalSettings,
     pub ssh: SshSettings,
-    pub password: PasswordSettings,
+    pub password: Option<PasswordSettings>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::from_str;
+
+    #[test]
+    fn test() {
+        let s = r#"{"miner":{"cooling":{"mode":{"name":"auto","param":60}},"devfee":{"region":"auto"},"misc":{"asic_boost":false,"restart_hashrate":0,"restart_temp":85,"disable_restart_unbalanced":false,"disable_chain_break_protection":false,"max_restart_attempts":0,"bitmain_disable_volt_comp":false,"quick_start":false,"higher_volt_offset":100,"tuner_bad_chip_hr_threshold":50},"overclock":{"modded_psu":false,"preset":"3486","globals":{"volt":1400,"freq":610},"chains":[{"freq":0,"chips":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"disabled":false},{"freq":0,"chips":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"disabled":false},{"freq":0,"chips":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"disabled":false}]},"pools":[{"url":"btc.foundryusapool.com:3333","user":"pct19.47.4x243","pass":""},{"url":"btc.foundryusapool.com:443","user":"pct19.47.4x243","pass":""},{"url":"btc.foundryusapool.com:25","user":"pct19.47.4x243","pass":""}],"hotel_fee":{"enable":false,"pool":{"url":"stratum.slushpool.com:3333","worker":"ahx.hotelfee","percent":1.0}}},"ui":{"theme":"auto","dark_side_pane":false,"disable_animation":false,"locale":"en","timezone":"GMT","consts":{"cooling":{"min_fan_pwm":10,"min_target_temp":20,"max_target_temp":100},"overclock":{"max_voltage":1535,"min_voltage":1200,"default_voltage":1340,"max_freq":1000,"min_freq":50,"default_freq":600,"warn_freq":750,"max_voltage_stock_psu":1500},"timezones":[["GMT-11","GMT-11"],["GMT-10","GMT-10"],["GMT-9","GMT-09"],["GMT-8","GMT-08"],["GMT-7","GMT-07"],["GMT-6","GMT-06"],["GMT-5","GMT-05"],["GMT-4","GMT-04"],["GMT-3","GMT-03"],["GMT-2","GMT-02"],["GMT-1","GMT-01"],["GMT","GMT"],["GMT+1","GMT+01"],["GMT+2","GMT+02"],["GMT+3","GMT+03"],["GMT+4","GMT+04"],["GMT+5","GMT+05"],["GMT+6","GMT+06"],["GMT+7","GMT+07"],["GMT+8","GMT+08"],["GMT+9","GMT+09"],["GMT+10","GMT+10"],["GMT+11","GMT+11"],["GMT+12","GMT+12"]]}},"regional":{"timezone":{"current":"GMT"}},"network":{"hostname":"Antminer","dhcp":true,"ipaddress":"192.168.15.44","netmask":"255.255.255.0","gateway":"192.168.15.1","dnsservers":["192.168.15.1","1.1.1.1"]},"ssh":{"enabled":true,"port":22},"password":null,"layout":null,"boot":null}"#;
+        let settings: Settings = from_str(s).unwrap();
+        assert_eq!(settings.miner.pools.len(), 3);
+        assert_eq!(settings.miner.pools[0].url, "btc.foundryusapool.com:3333");
+        assert_eq!(settings.miner.pools[0].username, "pct19.47.4x243");
+    }
 }

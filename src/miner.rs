@@ -46,6 +46,12 @@ impl MinerError {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Profile {
+    Default,
+    Preset { name: String, power: f64, ths: f64 },
+}
+
 #[async_trait]
 pub trait Miner {
     fn new(client: Client, ip: String, port: u16) -> Self
@@ -97,6 +103,12 @@ pub trait Miner {
     async fn get_errors(&mut self) -> Result<Vec<String>, Error>;
 
     async fn get_dns(&self) -> Result<String, Error>;
+
+    async fn get_profile(&self) -> Result<Profile, Error>;
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error>;
+
+    async fn set_profile(&mut self, name: &str) -> Result<(), Error>;
 }
 
 pub struct LockMiner {
@@ -202,5 +214,17 @@ impl Miner for LockMiner {
 
     async fn get_dns(&self) -> Result<String, Error> {
         self.miner.get_dns().await
+    }
+
+    async fn get_profile(&self) -> Result<Profile, Error> {
+        self.miner.get_profile().await
+    }
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
+        self.miner.get_profiles().await
+    }
+
+    async fn set_profile(&mut self, name: &str) -> Result<(), Error> {
+        self.miner.set_profile(name).await
     }
 }

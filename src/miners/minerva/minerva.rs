@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use scraper::{Html, Selector};
 use tokio::sync::{Mutex, MutexGuard};
 use crate::Client;
-use crate::miner::{Miner, Pool};
+use crate::miner::{Miner, Pool, Profile};
 use crate::error::Error;
 use crate::miners::minerva::{cgminer, minera};
 use crate::miners::minerva::error::{MINERVA_ERRORS, MINERA_ERRORS};
@@ -325,6 +325,18 @@ impl Miner for Minera {
             minera::StatsResp::Running(stat) => Ok(stat.ifconfig.dns.clone()),
             minera::StatsResp::NotRunning(stat) => Ok(stat.ifconfig.dns.clone()),
         }
+    }
+
+    async fn get_profile(&self) -> Result<Profile, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn set_profile(&mut self, _name: &str) -> Result<(), Error> {
+        Err(Error::NotSupported)
     }
 }
 
@@ -700,5 +712,17 @@ impl Miner for Minerva {
         } else {
             Err(Error::HttpRequestFailed)
         }
+    }
+
+    async fn get_profile(&self) -> Result<Profile, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn set_profile(&mut self, _name: &str) -> Result<(), Error> {
+        Err(Error::NotSupported)
     }
 }

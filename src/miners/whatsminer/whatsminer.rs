@@ -6,7 +6,7 @@ use lazy_regex::regex;
 use std::collections::HashSet;
 use phf::phf_map;
 
-use crate::{Client, Miner, error::Error, Pool, miners::common, miners::whatsminer::wmapi, Cache, CacheItem};
+use crate::{Client, Miner, error::Error, Pool, miners::common, miners::whatsminer::wmapi, Cache, CacheItem, miner::Profile};
 use super::{error::WHATSMINER_ERRORS, wmapi::StatusCode};
 
 // (J/TH, Datasheet TH)
@@ -495,5 +495,17 @@ impl Miner for Whatsminer {
             let resp: wmapi::MinerInfoResponse = serde_json::from_str(&resp)?;
             Ok(resp.msg.dns.clone())
         }
+    }
+
+    async fn get_profile(&self) -> Result<Profile, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn set_profile(&mut self, _name: &str) -> Result<(), Error> {
+        Err(Error::NotSupported)
     }
 }

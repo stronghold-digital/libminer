@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use lazy_regex::regex;
-use crate::{Client, Miner, error::Error, Pool};
+use serde_json::json;
+use crate::{Client, Miner, error::Error, Pool, miner::Profile};
 use tokio::sync::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -20,6 +21,7 @@ pub struct Vnish {
     settings: Mutex<Option<api::Settings>>,
     info: Mutex<Option<api::Info>>,
     summary: Mutex<Option<api::Summary>>,
+    presets: Mutex<Option<Vec<Profile>>>,
 }
 
 impl Vnish {
@@ -122,6 +124,7 @@ impl Miner for Vnish {
             settings: Mutex::new(None),
             info: Mutex::new(None),
             summary: Mutex::new(None),
+            presets: Mutex::new(None),
         }
     }
 
@@ -373,5 +376,75 @@ impl Miner for Vnish {
         let info = self.get_info().await?;
         let info = info.as_ref().unwrap_or_else(|| unreachable!());
         Ok(info.system.network_status.dns.get(0).ok_or(Error::ApiCallFailed("No DNS servers found".into()))?.clone())
+    }
+
+    async fn get_profile(&self) -> Result<Profile, Error> {
+        let settings = self.get_settings().await?;
+        let settings = settings.as_ref().unwrap_or_else(|| unreachable!());
+        let presets = self.get_profiles().await?;
+        Ok(
+            presets.iter().find(|p| {
+                match p {
+                    Profile::Default => settings.miner.overclock.preset == "disabled",
+                    Profile::Preset { name, .. } => name == &settings.miner.overclock.preset,
+                }
+            }).unwrap_or_else(|| unreachable!()).clone()
+        )
+    }
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
+        let mut profiles = self.presets.lock().await;
+        if profiles.is_none() {
+            let resp = self.client.http_client
+                .get(&format!("http://{}/api/v1/autotune/presets", self.ip))
+                .bearer_auth(&self.token)
+                .send()
+                .await?;
+
+            if resp.status().is_success() {
+                let presets = resp.json::<api::Presets>().await?;
+                let presets = presets.into_iter().map(|p| p.into()).collect();
+                *profiles = Some(presets);
+            } else {
+                return Err(Error::ApiCallFailed("presets".into()));
+            }
+        }
+        Ok(profiles.as_ref().unwrap().clone())
+    }
+
+    async fn set_profile(&mut self, name: &str) -> Result<(), Error> {
+        let presets = self.get_profiles().await?;
+        let preset = presets.iter().find(|p| {
+            match p {
+                Profile::Default => name == "disabled",
+                Profile::Preset { name: n, .. } => name == n,
+            }
+        }).ok_or(Error::ApiCallFailed("Invalid preset".into()))?;
+
+        let js = json!({
+            "miner": {
+                "overclock": {
+                    "preset": match preset {
+                        Profile::Default => "disabled",
+                        Profile::Preset { name, .. } => name,
+                    },
+                },
+            }
+        });
+
+        let resp = self.client.http_client
+            .post(&format!("http://{}/api/v1/settings", self.ip))
+            .bearer_auth(&self.token)
+            .json(&js)
+            .send()
+            .await?;
+
+        if resp.status().is_success() {
+            self.reboot().await?;
+            self.invalidate().await?;
+            Ok(())
+        } else {
+            Err(Error::ApiCallFailed("settings".into()))
+        }
     }
 }

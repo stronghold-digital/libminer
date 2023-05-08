@@ -2,7 +2,7 @@ mod util;
 pub mod miners;
 mod miner;
 
-pub use miner::{Miner, Pool};
+pub use miner::{Miner, Pool, Profile};
 pub mod error;
 
 use miners::*;

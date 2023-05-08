@@ -7,7 +7,7 @@ use phf::phf_map;
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::util::digest_auth::WithDigestAuth;
-use crate::miner::{Miner, Pool};
+use crate::miner::{Miner, Pool, Profile};
 use crate::miners::antminer::cgi;
 use crate::error::Error;
 use crate::Client;
@@ -368,5 +368,17 @@ impl Miner for Antminer {
         let sys_info = sys_info.as_ref().unwrap_or_else(|| unreachable!());
 
         Ok(sys_info.dnsservers.clone())
+    }
+
+    async fn get_profile(&self) -> Result<Profile, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
+        Err(Error::NotSupported)
+    }
+
+    async fn set_profile(&mut self, _name: &str) -> Result<(), Error> {
+        Err(Error::NotSupported)
     }
 }
