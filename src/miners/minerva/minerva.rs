@@ -476,11 +476,9 @@ impl Miner for Minerva {
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {
-        let hashrate = self.get_hashrate().await?;
-        if hashrate > 0.0 {
-            Ok(self.get_power().await? / hashrate)
-        } else {
-            Ok(0.0)
+        match (self.get_hashrate().await, self.get_power().await) {
+            (Ok(hashrate), Ok(power)) if hashrate > 0.0 => Ok(power / hashrate),
+            _ => Ok(35.0),
         }
     }
 
