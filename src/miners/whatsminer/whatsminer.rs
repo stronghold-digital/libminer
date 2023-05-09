@@ -239,6 +239,12 @@ impl Miner for Whatsminer {
         Ok(sum.summary[0].power as f64)
     }
 
+    async fn get_nameplate_power(&self) -> Result<f64, Error> {
+        let model = self.get_model().await?;
+
+        EFF_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model.to_string())).map(|(jth, watts)| jth * watts)
+    }
+
     async fn get_efficiency(&self) -> Result<f64, Error> {
         if let Ok(sum) = self.get_summary().await {
             let sum = sum.as_ref().unwrap_or_else(|| unreachable!());

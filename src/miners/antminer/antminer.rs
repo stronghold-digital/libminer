@@ -19,7 +19,7 @@ use super::cgi::SetConf;
 /// If more than 1 variant exists, this will be an average of all variants
 /// Antminer rates these @25C
 /// Second number is max fan speed
-static POWER_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
+pub static POWER_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
     "t19" => (37.5, 6000.0),
     "s19" => (34.7, 6000.0),
     "s19j" => (34.5, 6000.0),
@@ -193,6 +193,13 @@ impl Miner for Antminer {
             },
             Err(e) => Err(e),
         }
+    }
+
+    async fn get_nameplate_power(&self) -> Result<f64, Error> {
+        let model = self.get_model().await?;
+        let rate = self.get_nameplate_rate().await?;
+
+        Ok(rate * POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?.0)
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {

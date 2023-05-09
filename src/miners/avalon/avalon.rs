@@ -128,6 +128,13 @@ impl Miner for Avalon {
         Ok(psinfo.power as f64)
     }
 
+    async fn get_nameplate_power(&self) -> Result<f64, Error> {
+        let nameplate_rate = self.get_nameplate_rate().await?;
+        let model = self.get_model().await?;
+        let eff = EFF_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model.to_string())).map(|x| *x)?;
+        Ok(nameplate_rate * eff)
+    }
+
     async fn get_efficiency(&self) -> Result<f64, Error> {
         if let Ok(estats) = self.get_estats().await {
             let estats = estats.as_ref().unwrap_or_else(|| unreachable!());

@@ -166,6 +166,11 @@ impl Miner for Minera {
         }
     }
 
+    async fn get_nameplate_power(&self) -> Result<f64, Error> {
+        // Guess at it since minerva doesn't report just about anything
+        Ok(3300.0)
+    }
+
     async fn get_efficiency(&self) -> Result<f64, Error> {
         Ok(35.0)
     }
@@ -463,6 +468,11 @@ impl Miner for Minerva {
         } else {
             Err(Error::HttpRequestFailed)
         }
+    }
+
+    async fn get_nameplate_power(&self) -> Result<f64, Error> {
+        // Guess at it since minerva doesn't report just about anything
+        Ok(3300.0)
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {

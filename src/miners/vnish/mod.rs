@@ -11,6 +11,8 @@ mod error;
 
 use error::VNISH_ERRORS;
 
+use crate::miners::antminer::POWER_MAP;
+
 pub struct Vnish {
     ip: String,
     port: u16,
@@ -193,6 +195,23 @@ impl Miner for Vnish {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
         Ok(summary.miner.power_usage)
+    }
+
+    async fn get_nameplate_power(&self) -> Result<f64, Error> {
+        let profile = self.get_profile().await?;
+
+        match profile {
+            Profile::Default => {
+                let model = self.get_model().await?;
+                // Map s19-88 to s19
+                let model = model.split('-').next().unwrap_or_else(|| unreachable!());
+                let eff = POWER_MAP.get(model).ok_or(Error::ApiCallFailed("Invalid model".into()))?;
+                Ok(eff.0 * self.get_nameplate_rate().await?)
+            },
+            Profile::Preset { name, power, ths } => {
+                Ok(power)
+            }
+        }
     }
 
     async fn get_efficiency(&self) -> Result<f64, Error> {
