@@ -67,27 +67,6 @@ impl Minera {
     async fn invalidate_stats(&self) {
         let _ = self.stats.lock().await.take();
     }
-
-    /// Returns the number of hashboards detected and the number online
-    async fn get_board_count(&self) -> Result<u8, Error> {
-        let stat = self.get_stats().await?;
-        let stat = stat.as_ref().unwrap_or_else(|| unreachable!());
-        if let minera::StatsResp::Running(stat) = stat {
-            if stat.devices.board_4.is_some() {
-                Ok(4)
-            } else if stat.devices.board_3.is_some() {
-                Ok(3)
-            } else if stat.devices.board_2.is_some() {
-                Ok(2)
-            } else if stat.devices.board_1.is_some() {
-                Ok(1)
-            } else {
-                Ok(0)
-            }
-        } else {
-            Err(Error::InvalidResponse)
-        }
-    }
 }
 
 #[async_trait]
@@ -348,27 +327,9 @@ impl Miner for Minera {
 /// 2 fan Minervas use this interface
 pub struct Minerva {
     ip: String,
-    port: u16,
+    _port: u16,
     client: Client,
     token: String,
-}
-
-impl Minerva {
-    /// Returns the number of hashboards detected
-    async fn get_board_count(&self) -> Result<u8, Error> {
-        let resp = self.client.http_client
-            .get(&format!("https://{}/api/v1/systemInfo/hashBoards", self.ip))
-            .bearer_auth(&self.token)
-            .send()
-            .await?;
-        if resp.status().is_success() {
-            let resp = resp.json::<cgminer::HashBoardsResp>().await.unwrap();
-            let boards = resp.data.ok_or(Error::ApiCallFailed(resp.message))?;
-            Ok(boards.len() as u8)
-        } else {
-            Err(Error::HttpRequestFailed)
-        }
-    }
 }
 
 #[async_trait]
@@ -376,7 +337,7 @@ impl Miner for Minerva {
     fn new(client: Client, ip: String, port: u16) -> Self {
         Minerva {
             ip,
-            port,
+            _port: port,
             client,
             token: "".to_string(),
         }
