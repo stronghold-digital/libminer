@@ -1,6 +1,7 @@
 use serde::{Deserialize, de::Deserializer, Serialize, ser::Serializer};
 
 use crate::Pool;
+use super::UI;
 
 #[derive(Serialize)]
 pub struct VPool {
@@ -86,8 +87,8 @@ pub struct MiscSettings {
 
 #[derive(Deserialize, Serialize)]
 pub struct GlobalOverclockSettings {
-    pub freq: usize,
-    pub volt: usize,
+    pub freq: u32,
+    pub volt: u32,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -166,6 +167,8 @@ pub struct Settings {
     pub regional: RegionalSettings,
     pub ssh: SshSettings,
     pub password: Option<PasswordSettings>,
+    #[serde(skip_serializing)]
+    pub ui: UI,
 }
 
 #[cfg(test)]

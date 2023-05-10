@@ -59,7 +59,6 @@ impl Vnish {
                     .json::<api::Settings>()
                     .await?
             );
-
         }
 
         Ok(settings)
@@ -201,16 +200,16 @@ impl Miner for Vnish {
         let profile = self.get_profile().await?;
 
         match profile {
-            Profile::Default => {
+            Profile::Preset { name: _, power, ths: _ } => {
+                Ok(power)
+            }
+            _ => {
                 let model = self.get_model().await?;
                 // Map s19-88 to s19
                 let model = model.split('-').next().unwrap_or_else(|| unreachable!());
                 let eff = POWER_MAP.get(model).ok_or(Error::ApiCallFailed("Invalid model".into()))?;
                 Ok(eff.0 * self.get_nameplate_rate().await?)
             },
-            Profile::Preset { name, power, ths } => {
-                Ok(power)
-            }
         }
     }
 
@@ -409,7 +408,16 @@ impl Miner for Vnish {
         Ok(
             presets.iter().find(|p| {
                 match p {
-                    Profile::Default => settings.miner.overclock.preset == "disabled",
+                    Profile::Manual { .. }=> {
+                        settings.miner.overclock.preset == "disabled"
+                        && settings.miner.overclock.globals.volt != settings.ui.consts.overclock.default_voltage
+                        && settings.miner.overclock.globals.freq != settings.ui.consts.overclock.default_freq
+                    },
+                    Profile::Default => {
+                        settings.miner.overclock.preset == "disabled"
+                        && settings.miner.overclock.globals.volt == settings.ui.consts.overclock.default_voltage
+                        && settings.miner.overclock.globals.freq == settings.ui.consts.overclock.default_freq
+                    },
                     Profile::Preset { name, .. } => name == &settings.miner.overclock.preset,
                 }
             }).unwrap_or_else(|| unreachable!()).clone()
@@ -425,37 +433,70 @@ impl Miner for Vnish {
                 .send()
                 .await?;
 
-            if resp.status().is_success() {
-                let presets = resp.json::<api::Presets>().await?;
-                let presets = presets.into_iter().map(|p| p.into()).collect();
-                *profiles = Some(presets);
-            } else {
+            if !resp.status().is_success() {
                 return Err(Error::ApiCallFailed("presets".into()));
             }
+            let presets = resp.json::<api::Presets>().await?;
+
+            let settings = self.get_settings().await?;
+            let settings = settings.as_ref().unwrap_or_else(|| unreachable!());
+
+            let mut presets: Vec<_> = presets.into_iter().map(|p| p.into()).collect();
+            presets.push(Profile::Manual {
+                volt: settings.miner.overclock.globals.volt,
+                freq: settings.miner.overclock.globals.freq,
+                min_freq: settings.ui.consts.overclock.min_freq,
+                max_freq: settings.ui.consts.overclock.max_freq,
+                min_volt: settings.ui.consts.overclock.min_voltage,
+                max_volt: settings.ui.consts.overclock.max_voltage,
+            });
+            *profiles = Some(presets);
         }
         Ok(profiles.as_ref().unwrap().clone())
     }
 
-    async fn set_profile(&mut self, name: &str) -> Result<(), Error> {
+    async fn set_profile(&mut self, profile: Profile) -> Result<(), Error> {
         let presets = self.get_profiles().await?;
-        let preset = presets.iter().find(|p| {
-            match p {
-                Profile::Default => name == "disabled",
-                Profile::Preset { name: n, .. } => name == n,
-            }
-        }).ok_or(Error::ApiCallFailed("Invalid preset".into()))?;
+        let preset = presets.iter().find(|p| **p == profile)
+            .ok_or(Error::ApiCallFailed("Invalid profile".into()))?;
 
-        let js = json!({
-            "miner": {
-                "overclock": {
-                    "preset": match preset {
-                        Profile::Default => "disabled",
-                        Profile::Preset { name, .. } => name,
+        let js = {
+            let settings = self.get_settings().await?;
+            let settings = settings.as_ref().unwrap_or_else(|| unreachable!());
+    
+            match preset {
+                Profile::Default => json!({
+                    "miner": {
+                        "overclock": {
+                            "preset": "disabled",
+                            "globals": {
+                                "volt": settings.ui.consts.overclock.default_voltage,
+                                "freq": settings.ui.consts.overclock.default_freq,
+                            },
+                        },
                     },
-                },
+                }),
+                Profile::Preset { name, .. } => json!({
+                    "miner": {
+                        "overclock": {
+                            "preset": name,
+                        },
+                    },
+                }),
+                Profile::Manual { volt, freq, .. } => json!({
+                    "miner": {
+                        "overclock": {
+                            "preset": "disabled",
+                            "globals": {
+                                "volt": volt,
+                                "freq": freq,
+                            },
+                        },
+                    },
+                }),
             }
-        });
-
+        };
+    
         let resp = self.client.http_client
             .post(&format!("http://{}/api/v1/settings", self.ip))
             .bearer_auth(&self.token)

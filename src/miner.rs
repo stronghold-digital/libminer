@@ -46,10 +46,11 @@ impl MinerError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Profile {
     Default,
     Preset { name: String, power: f64, ths: f64 },
+    Manual { volt: u32, freq: u32, min_freq: u32, max_freq: u32, min_volt: u32, max_volt: u32 },
 }
 
 #[async_trait]
@@ -57,6 +58,7 @@ pub trait Miner {
     fn new(client: Client, ip: String, port: u16) -> Self
         where Self: Sized;
     
+    #[allow(unused_mut)]
     fn with_cache(mut self, _cache: Option<Cache>) -> Self
         where Self: Sized {
             self
@@ -110,7 +112,7 @@ pub trait Miner {
 
     async fn get_profiles(&self) -> Result<Vec<Profile>, Error>;
 
-    async fn set_profile(&mut self, name: &str) -> Result<(), Error>;
+    async fn set_profile(&mut self, profile: Profile) -> Result<(), Error>;
 }
 
 pub struct LockMiner {
@@ -230,7 +232,7 @@ impl Miner for LockMiner {
         self.miner.get_profiles().await
     }
 
-    async fn set_profile(&mut self, name: &str) -> Result<(), Error> {
-        self.miner.set_profile(name).await
+    async fn set_profile(&mut self, profile: Profile) -> Result<(), Error> {
+        self.miner.set_profile(profile).await
     }
 }

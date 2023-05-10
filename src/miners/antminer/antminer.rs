@@ -385,7 +385,7 @@ impl Miner for Antminer {
         Err(Error::NotSupported)
     }
 
-    async fn set_profile(&mut self, _name: &str) -> Result<(), Error> {
+    async fn set_profile(&mut self, _profile: Profile) -> Result<(), Error> {
         Err(Error::NotSupported)
     }
 }
