@@ -13,6 +13,7 @@ pub struct Overclock {
     pub default_voltage: u32,
     pub max_freq: u32,
     pub max_voltage: u32,
+    pub max_voltage_stock_psu: u32,
     pub min_freq: u32,
     pub min_voltage: u32,
     pub warn_freq: u32,
