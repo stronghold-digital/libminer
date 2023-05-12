@@ -402,9 +402,9 @@ impl Miner for Vnish {
     }
 
     async fn get_profile(&self) -> Result<Profile, Error> {
+        let presets = self.get_profiles().await?;
         let settings = self.get_settings().await?;
         let settings = settings.as_ref().unwrap_or_else(|| unreachable!());
-        let presets = self.get_profiles().await?;
         Ok(
             presets.iter().find(|p| {
                 match p {
@@ -448,7 +448,9 @@ impl Miner for Vnish {
                 min_freq: settings.ui.consts.overclock.min_freq,
                 max_freq: settings.ui.consts.overclock.max_freq,
                 min_volt: settings.ui.consts.overclock.min_voltage,
-                max_volt: settings.ui.consts.overclock.max_voltage,
+                max_volt: settings.ui.consts.overclock.max_voltage_stock_psu,
+                def_volt: settings.ui.consts.overclock.default_voltage,
+                def_freq: settings.ui.consts.overclock.default_freq,
             });
             *profiles = Some(presets);
         }
