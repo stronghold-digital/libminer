@@ -164,7 +164,7 @@ impl Miner for Avalon {
     async fn get_temperature(&self) -> Result<f64, Error> {
         let estats = self.get_estats().await?;
         let estats = estats.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(estats.temp as f64)
+        Ok(estats.tmax as f64)
     }
 
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error> {
