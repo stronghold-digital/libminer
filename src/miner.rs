@@ -50,7 +50,7 @@ impl MinerError {
 pub enum Profile {
     Default,
     Preset { name: String, power: f64, ths: f64 },
-    Manual { volt: u32, freq: u32, min_freq: u32, max_freq: u32, min_volt: u32, max_volt: u32 },
+    Manual { volt: u32, freq: u32, min_freq: u32, max_freq: u32, min_volt: u32, max_volt: u32, def_volt: u32, def_freq: u32 },
 }
 
 #[async_trait]
