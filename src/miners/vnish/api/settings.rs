@@ -91,7 +91,7 @@ pub struct GlobalOverclockSettings {
     pub volt: u32,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ChainSettings {
     pub freq: usize,
     pub chips: Vec<usize>,

@@ -459,12 +459,28 @@ impl Miner for Vnish {
 
     async fn set_profile(&mut self, profile: Profile) -> Result<(), Error> {
         let presets = self.get_profiles().await?;
-        let preset = presets.iter().find(|p| **p == profile)
+        let preset = presets.iter().find(|p| match (*p, &profile) {
+            (Profile::Default, Profile::Default) => true,
+            (Profile::Preset { name: n1, .. }, Profile::Preset { name: n2, .. }) => n1 == n2,
+            (Profile::Manual { volt: _, freq: _, max_freq, min_freq, min_volt, max_volt, .. }, Profile::Manual { volt: v2, freq: f2, .. }) => {
+                v2 >= min_volt && v2 <= max_volt && f2 >= min_freq && f2 <= max_freq
+            },
+            _ => false,
+        })
             .ok_or(Error::ApiCallFailed("Invalid profile".into()))?;
 
         let js = {
             let settings = self.get_settings().await?;
             let settings = settings.as_ref().unwrap_or_else(|| unreachable!());
+
+            let chains = settings.miner.overclock.chains.iter().cloned()
+                .map(|mut c| {
+                    // Set to global freq
+                    c.freq = 0;
+                    // Set to chain freq
+                    c.chips = vec![0; c.chips.len()];
+                    c
+                });
     
             match preset {
                 Profile::Default => json!({
@@ -507,6 +523,7 @@ impl Miner for Vnish {
             .await?;
 
         if resp.status().is_success() {
+            println!("{:?}", resp.text().await?);
             self.reboot().await?;
             self.invalidate().await?;
             Ok(())
