@@ -185,7 +185,15 @@ impl Miner for Avalon {
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
-        Err(Error::NotSupported)
+        // Returns a JS callback, we care about the JSON object inside of CGConfCallback()
+        let resp = self.client.send_recv(&self.ip, self.port, r#"{"command":"pools"}"#).await?;
+        Ok(
+            serde_json::from_str::<cgminer::PoolResp>(&resp)?
+                .pools
+                .into_iter()
+                .map(|p| p.into())
+                .collect()
+        )
     }
 
     async fn set_pools(&mut self, _pools: Vec<Pool>) -> Result<(), Error> {

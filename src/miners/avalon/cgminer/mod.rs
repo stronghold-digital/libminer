@@ -5,6 +5,8 @@ mod estats;
 pub use estats::*;
 mod version;
 pub use version::*;
+mod pools;
+pub use pools::*;
 
 pub use de::Error;
 pub use crate::common::{
