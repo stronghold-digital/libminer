@@ -24,13 +24,13 @@ pub struct Version {
 
 impl Version {
     pub fn model(&self) -> Result<&str, Error> {
-        let re = regex!(r"([\w\d]+)-(?:\d+)");
+        let re = regex!(r"([\w\d]+)(?:-N)?-(\d+)");
         let caps = re.captures(&self.model).ok_or(Error::InvalidResponse)?;
         Ok(caps.get(1).unwrap_or_else(|| unreachable!()).as_str())
     }
 
     pub fn hashrate_th(&self) -> Result<f64, Error> {
-        let re = regex!(r"(?:[\d\w]+)-(\d+)");
+        let re = regex!(r"(?:[\w\d]+)(?:-N)?-(\d+)");
         let caps = re.captures(&self.model).ok_or(Error::InvalidResponse)?;
         Ok(caps.get(1).unwrap_or_else(|| unreachable!()).as_str().parse().unwrap_or_else(|_| unreachable!()))
     }
