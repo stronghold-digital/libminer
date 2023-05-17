@@ -419,6 +419,7 @@ impl Miner for Vnish {
                         && settings.miner.overclock.globals.freq == settings.ui.consts.overclock.default_freq
                     },
                     Profile::Preset { name, .. } => name == &settings.miner.overclock.preset,
+                    Profile::LowPower => false,
                 }
             }).unwrap_or_else(|| unreachable!()).clone()
         )
@@ -512,6 +513,7 @@ impl Miner for Vnish {
                         },
                     },
                 }),
+                Profile::LowPower => return Err(Error::NotSupported),
             }
         };
     

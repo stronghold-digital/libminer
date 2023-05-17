@@ -108,6 +108,7 @@ pub struct EStats {
     /// Per hashboard average temperature
     #[serde(rename = "MTavg")]
     pub mtavg: Vec<i32>,
+    pub workmode: u8,
 }
 
 impl TryFrom<&AvaStats> for EStats {

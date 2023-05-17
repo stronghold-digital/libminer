@@ -271,14 +271,39 @@ impl Miner for Avalon {
     }
 
     async fn get_profile(&self) -> Result<Profile, Error> {
-        Err(Error::NotSupported)
+        let estats = self.get_estats().await?;
+        let estats = estats.as_ref().unwrap_or_else(|| unreachable!());
+
+        match estats.workmode {
+            0 => Ok(Profile::LowPower),
+            1 => Ok(Profile::Default),
+            _ => Err(Error::InvalidResponse),
+        }
     }
 
     async fn get_profiles(&self) -> Result<Vec<Profile>, Error> {
-        Err(Error::NotSupported)
+        Ok(vec![
+            Profile::Default,
+            Profile::LowPower,
+        ])
     }
 
-    async fn set_profile(&mut self, _profile: Profile) -> Result<(), Error> {
-        Err(Error::NotSupported)
+    async fn set_profile(&mut self, profile: Profile) -> Result<(), Error> {
+        // If success response is "ASC 0 set info: WORKMODE[1]"
+        let re = regex!(r#"msg=asc 0 set info: workmode\[(\d)\]"#);
+        let workmode = match profile {
+            Profile::Default => 1,
+            Profile::LowPower => 0,
+            _ => return Err(Error::NotSupported),
+        };
+        let cmd = format!(r#"ascset|0,workmode,{}"#, workmode);
+        let resp = self.client.send_recv(&self.ip, self.port, &cmd).await?.to_lowercase();
+        let caps = re.captures(&resp).ok_or(Error::InvalidResponse)?;
+        let resp = caps.get(1).ok_or(Error::InvalidResponse)?.as_str().parse::<u8>().map_err(|_| Error::InvalidResponse)?;
+        if resp == workmode {
+            self.reboot().await
+        } else {
+            Err(Error::ApiCallFailed(resp.to_string()))
+        }
     }
 }
