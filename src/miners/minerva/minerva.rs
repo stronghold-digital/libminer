@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use lazy_regex::regex;
 use reqwest::multipart::Form;
 use serde_json::json;
-use tracing::{warn, error};
 use std::collections::HashSet;
 use scraper::{Html, Selector};
 use tokio::sync::{Mutex, MutexGuard};

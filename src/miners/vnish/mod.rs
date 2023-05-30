@@ -16,7 +16,7 @@ use crate::miner::MinerError;
 
 pub struct Vnish {
     ip: String,
-    port: u16,
+    _port: u16,
     client: Client,
     token: String,
 
@@ -118,7 +118,7 @@ impl Miner for Vnish {
     fn new(client: Client, ip: String, port: u16) -> Self {
         Self {
             ip,
-            port,
+            _port: port,
             client,
 
             token: String::new(),
@@ -475,7 +475,7 @@ impl Miner for Vnish {
             let settings = self.get_settings().await?;
             let settings = settings.as_ref().unwrap_or_else(|| unreachable!());
 
-            let chains = settings.miner.overclock.chains.iter().cloned()
+            let _chains = settings.miner.overclock.chains.iter().cloned()
                 .map(|mut c| {
                     // Set to global freq
                     c.freq = 0;

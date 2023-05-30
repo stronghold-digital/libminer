@@ -73,10 +73,6 @@ impl TryFrom<StatusResp> for PowerSupplyInfo {
 }
 
 impl PowerSupplyInfo {
-    pub fn get_cmd() -> &'static str {
-        r#"{"command":"ascset","parameter":"0,hashpower"}"#
-    }
-
     pub fn set_cmd(sleep: bool) -> String {
         format!(r#"{{"command":"ascset","parameter":"0,hashpower,{}"}}"#, if sleep { 0 } else { 1 })
     }

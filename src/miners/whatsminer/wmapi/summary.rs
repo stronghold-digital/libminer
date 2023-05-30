@@ -1,4 +1,4 @@
-use serde::{Deserialize, Deserializer, de::Error};
+use serde::Deserialize;
 
 use super::Status;
 
