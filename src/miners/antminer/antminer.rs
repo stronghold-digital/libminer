@@ -7,7 +7,7 @@ use phf::phf_map;
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::util::digest_auth::WithDigestAuth;
-use crate::miner::{Miner, Pool, Profile};
+use crate::miner::{Miner, Pool, Profile, MinerError};
 use crate::miners::antminer::cgi;
 use crate::error::Error;
 use crate::Client;
@@ -359,11 +359,11 @@ impl Miner for Antminer {
         Ok(sys_info.macaddr.clone())
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         let log = self.get_logs().await?.join("\n");
         let mut errors = HashSet::new();
         for err in ANTMINER_ERRORS.iter() {
-            if let Some(msg) = err.get_msg(&log) {
+            if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);
             }
         }

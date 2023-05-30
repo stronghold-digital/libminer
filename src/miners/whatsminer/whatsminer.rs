@@ -6,7 +6,7 @@ use lazy_regex::regex;
 use std::collections::HashSet;
 use phf::phf_map;
 
-use crate::{Client, Miner, error::Error, Pool, miners::common, miners::whatsminer::wmapi, Cache, CacheItem, miner::Profile};
+use crate::{Client, Miner, miner::MinerError, error::Error, Pool, miners::common, miners::whatsminer::wmapi, Cache, CacheItem, miner::Profile};
 use super::{error::WHATSMINER_ERRORS, wmapi::StatusCode};
 
 // (J/TH, Datasheet TH)
@@ -471,7 +471,7 @@ impl Miner for Whatsminer {
         }
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         let resp = self.send_recv(&json!({"cmd":"get_error_code"})).await?;
         // Whatsminer again returning invalid JSON
         //{"error_code":["111":"2022-10-20 09:18:54","110":"2022-10-20 09:18:54","2010":"1970-01-02 08:00:04"]}
@@ -486,7 +486,7 @@ impl Miner for Whatsminer {
             .join("\n");
         let mut errors = HashSet::new();
         for err in WHATSMINER_ERRORS.iter() {
-            if let Some(msg) = err.get_msg(&log) {
+            if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);
             }
         }

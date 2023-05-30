@@ -23,7 +23,7 @@ impl Default for Pool {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
 pub enum ErrorType {
     ControlBoard,
     HashBoard,
@@ -36,13 +36,13 @@ pub enum ErrorType {
 }
 
 #[derive(Debug)]
-pub struct MinerError {
+pub(crate) struct IntMinerError {
     pub re: &'static Lazy<Regex>,
     pub msg: &'static str,
     pub error_type: ErrorType,
 }
 
-impl MinerError {
+impl IntMinerError {
     pub fn get_msg(&self, line: &str) -> Option<String> {
         if let Some(caps) = self.re.captures(line) {
             let caps = caps.iter().skip(1);
@@ -57,6 +57,23 @@ impl MinerError {
             None
         }
     }
+
+    pub fn get_err(&self, line: &str) -> Option<MinerError> {
+        if let Some(msg) = self.get_msg(line) {
+            Some(MinerError {
+                msg,
+                error_type: self.error_type,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
+pub struct MinerError {
+    pub msg: String,
+    pub error_type: ErrorType,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -118,7 +135,7 @@ pub trait Miner {
 
     async fn get_mac(&self) -> Result<String, Error>;
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error>;
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error>;
 
     async fn get_dns(&self) -> Result<String, Error>;
 
@@ -230,7 +247,7 @@ impl Miner for LockMiner {
         self.miner.get_mac().await
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         self.miner.get_errors().await
     }
 

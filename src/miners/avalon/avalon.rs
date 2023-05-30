@@ -4,7 +4,7 @@ use lazy_regex::regex;
 use phf::phf_map;
 use tokio::sync::{Mutex, MutexGuard};
 
-use crate::miner::{Miner, Pool, Profile};
+use crate::miner::{Miner, Pool, Profile, MinerError};
 use crate::miners::avalon::cgminer;
 use crate::error::Error;
 use crate::Client;
@@ -270,7 +270,7 @@ impl Miner for Avalon {
         }
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         Err(Error::NotSupported)
     }
 

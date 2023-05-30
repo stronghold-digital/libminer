@@ -12,6 +12,7 @@ mod error;
 use error::VNISH_ERRORS;
 
 use crate::miners::antminer::POWER_MAP;
+use crate::miner::MinerError;
 
 pub struct Vnish {
     ip: String,
@@ -376,7 +377,7 @@ impl Miner for Vnish {
         Ok(info.system.network_status.mac.clone())
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         let logs = self.get_logs().await?.join("\n");
         // Only search since the last time we started up
         let re = regex!(r"INFO: Initializing PSU");
@@ -386,7 +387,7 @@ impl Miner for Vnish {
         let mut errors = HashSet::new();
         for err in VNISH_ERRORS.iter() {
             let mut logs = logs;
-            while let Some(msg) = err.get_msg(&logs) {
+            while let Some(msg) = err.get_err(&logs) {
                 let end = err.re.find(&logs).unwrap().end();
                 logs = &logs[end..];
                 errors.insert(msg);

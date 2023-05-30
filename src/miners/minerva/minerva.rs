@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use scraper::{Html, Selector};
 use tokio::sync::{Mutex, MutexGuard};
 use crate::Client;
-use crate::miner::{Miner, Pool, Profile};
+use crate::miner::{Miner, Pool, Profile, MinerError};
 use crate::error::Error;
 use crate::miners::minerva::{cgminer, minera};
 use crate::miners::minerva::error::{MINERVA_ERRORS, MINERA_ERRORS};
@@ -283,7 +283,7 @@ impl Miner for Minera {
         }
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         // We're going to only keep the last 300 lines
         // as this returns logs from before jesus was born
         let log = self.get_logs().await?
@@ -295,7 +295,7 @@ impl Miner for Minera {
             .join("\n");
         let mut errors = HashSet::new();
         for err in MINERA_ERRORS.iter() {
-            if let Some(msg) = err.get_msg(&log) {
+            if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);
             }
         }
@@ -658,11 +658,11 @@ impl Miner for Minerva {
         }
     }
 
-    async fn get_errors(&mut self) -> Result<Vec<String>, Error> {
+    async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         let log = self.get_logs().await?.join("\n");
         let mut errors = HashSet::new();
         for err in MINERVA_ERRORS.iter() {
-            if let Some(msg) = err.get_msg(&log) {
+            if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);
             }
         }
