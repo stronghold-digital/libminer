@@ -24,9 +24,22 @@ impl Default for Pool {
 }
 
 #[derive(Debug)]
+pub enum ErrorType {
+    ControlBoard,
+    HashBoard,
+    Fan,
+    Temperature,
+    Power,
+    Network,
+    Config,
+    Other,
+}
+
+#[derive(Debug)]
 pub struct MinerError {
     pub re: &'static Lazy<Regex>,
     pub msg: &'static str,
+    pub error_type: ErrorType,
 }
 
 impl MinerError {
