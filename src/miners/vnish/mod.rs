@@ -454,6 +454,7 @@ impl Miner for Vnish {
                 def_volt: settings.ui.consts.overclock.default_voltage,
                 def_freq: settings.ui.consts.overclock.default_freq,
             });
+            presets.push(Profile::Default);
             *profiles = Some(presets);
         }
         Ok(profiles.as_ref().unwrap().clone())
