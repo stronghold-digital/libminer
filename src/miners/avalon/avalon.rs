@@ -203,7 +203,7 @@ impl Miner for Avalon {
     async fn get_sleep(&self) -> Result<bool, Error> {
         let estats = self.get_estats().await?;
         let estats = estats.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(estats.ps.power == 0)
+        Ok(estats.ps.power == 0 && estats.sys_status.work == "In Idle")
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
