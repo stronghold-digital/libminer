@@ -25,7 +25,7 @@ pub(crate) static MINERA_ERRORS: [IntMinerError; 4] = [
     },
 ];
 
-pub(crate) static MINERVA_ERRORS: [IntMinerError; 9] = [
+pub(crate) static MINERVA_ERRORS: [IntMinerError; 10] = [
     IntMinerError {
         re: regex!(r".+Error: fan ([0-9]) failed"),
         msg: "Fan {} failed",
@@ -70,5 +70,10 @@ pub(crate) static MINERVA_ERRORS: [IntMinerError; 9] = [
         re: regex!(r".+waiting for fan spinning up: rpm: 0"),
         msg: "Fan not spinning up or sense fail",
         error_type: ErrorType::Fan,
+    },
+    IntMinerError {
+        re: regex!(r".+board temp: ([\d\.]+) C, sleep for protect"),
+        msg: "Board temperature {}C, failed to cool below 40C",
+        error_type: ErrorType::Temperature,
     }
 ];
