@@ -223,7 +223,8 @@ impl Miner for Vnish {
     async fn get_nameplate_rate(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.chains.iter().map(|c| c.hashrate_ideal).sum())
+        // Convert from GH/s to TH/s
+        Ok(summary.miner.chains.iter().map(|c| c.hashrate_ideal).sum::<f64>() / 1000.0)
     }
 
     async fn get_temperature(&self) -> Result<f64, Error> {
