@@ -443,6 +443,17 @@ impl<'de> MsgDeserializer<'de> {
                     }
                 }
             }
+            b'n' => {
+                // Check if the next 2 are "an"
+                match self.peek2() {
+                    Some((b'a', b'n')) => {
+                        self.discard();
+                        self.discard();
+                        Ok(Number::F64(f64::NAN))
+                    }
+                    _ => Err(self.error(ErrorCode::InvalidNumber)),
+                }
+            }
             _ => Err(self.error(ErrorCode::ExpectedUnsignedInteger)),
         }
     }
