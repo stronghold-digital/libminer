@@ -10,7 +10,7 @@ use crate::util::digest_auth::WithDigestAuth;
 use crate::miner::{Miner, Pool, Profile, MinerError};
 use crate::miners::antminer::cgi;
 use crate::error::Error;
-use crate::Client;
+use crate::{Client, ErrorType};
 use crate::miners::antminer::error::ANTMINER_ERRORS;
 
 use super::cgi::SetConf;
@@ -362,6 +362,13 @@ impl Miner for Antminer {
     async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
         let log = self.get_logs().await?.join("\n");
         let mut errors = HashSet::new();
+        let status = self.stats().await?;
+        let status = status.as_ref().unwrap_or_else(|| unreachable!());
+        if let Some(stats) = status.stats.get(0) {
+            if stats.chain_num < 3 {
+                errors.insert(MinerError { msg: "Missing Board(s)".into(), error_type: ErrorType::HashBoard });
+            }
+        }
         for err in ANTMINER_ERRORS.iter() {
             if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);

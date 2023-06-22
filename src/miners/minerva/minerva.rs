@@ -7,7 +7,7 @@ use serde_json::json;
 use std::collections::HashSet;
 use scraper::{Html, Selector};
 use tokio::sync::{Mutex, MutexGuard};
-use crate::Client;
+use crate::{Client, ErrorType};
 use crate::miner::{Miner, Pool, Profile, MinerError};
 use crate::error::Error;
 use crate::miners::minerva::{cgminer, minera};
@@ -293,6 +293,19 @@ impl Miner for Minera {
             .collect::<Vec<String>>()
             .join("\n");
         let mut errors = HashSet::new();
+        let stats = self.get_stats().await?;
+        let stats = stats.as_ref().unwrap_or_else(|| unreachable!());
+        match stats {
+            minera::StatsResp::Running(stat) => {
+                if let None = stat.devices.board_2 {
+                    errors.insert(MinerError { msg: "Missing Board(s)".into(), error_type: ErrorType::HashBoard });
+                }
+                if let None = stat.devices.board_3 {
+                    errors.insert(MinerError { msg: "Missing Board(s)".into(), error_type: ErrorType::HashBoard });
+                }
+            }
+            _ => {}
+        }
         for err in MINERA_ERRORS.iter() {
             if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);
@@ -658,8 +671,20 @@ impl Miner for Minerva {
     }
 
     async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
+        let r = self.client.http_client
+            .get(&format!("https://{}/api/v1/systemInfo/hashBoards", self.ip))
+            .bearer_auth(&self.token)
+            .send()
+            .await?;
+        let boards = r.json::<cgminer::HashBoardsResp>().await?;
+
         let log = self.get_logs().await?.join("\n");
         let mut errors = HashSet::new();
+        if let Some(boards) = boards.data {
+            if boards.len() < 3 {
+                errors.insert(MinerError { msg: "Missing Board(s)".into(), error_type: ErrorType::HashBoard });
+            }
+        }
         for err in MINERVA_ERRORS.iter() {
             if let Some(msg) = err.get_err(&log) {
                 errors.insert(msg);
