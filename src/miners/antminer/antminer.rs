@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use lazy_regex::regex;
 use serde_json::json;
 use std::{
     collections::HashSet,
@@ -360,7 +361,12 @@ impl Miner for Antminer {
     }
 
     async fn get_errors(&mut self) -> Result<Vec<MinerError>, Error> {
-        let log = self.get_logs().await?.join("\n");
+        let logs = self.get_logs().await?.join("\n");
+        // Only since last boot
+        let re = regex!("=capability start=");
+        let start = re.find_iter(&logs).last().map(|m| m.start()).unwrap_or(0);
+        let log = &logs[start..];
+
         let mut errors = HashSet::new();
         let status = self.stats().await?;
         let status = status.as_ref().unwrap_or_else(|| unreachable!());
