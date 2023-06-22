@@ -19,7 +19,7 @@ pub(crate) static MINERA_ERRORS: [IntMinerError; 4] = [
         error_type: ErrorType::Fan,
     },
     IntMinerError {
-        re: regex!("C3012 ([0-9]) failure, disabling!"),
+        re: regex!("C3012 ([0-9]) failure disabling!"),
         msg: "Chain {} failure",
         error_type: ErrorType::HashBoard,
     },
@@ -63,7 +63,7 @@ pub(crate) static MINERVA_ERRORS: [IntMinerError; 10] = [
     },
     IntMinerError {
         re: regex!(r".+read eeprom failed:I2C(Nix(ENXIO))"),
-        msg: "Failed to read EEPROM, device did not respond",
+        msg: "Failed to read EEPROM device did not respond",
         error_type: ErrorType::HashBoard,
     },
     IntMinerError {
@@ -73,7 +73,7 @@ pub(crate) static MINERVA_ERRORS: [IntMinerError; 10] = [
     },
     IntMinerError {
         re: regex!(r".+board temp: ([\d\.]+) C, sleep for protect"),
-        msg: "Board temperature {}C, failed to cool below 40C",
+        msg: "Board temperature {}C failed to cool below 40C",
         error_type: ErrorType::Temperature,
     }
 ];

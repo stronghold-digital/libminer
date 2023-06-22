@@ -25,12 +25,12 @@ pub(crate) static VNISH_ERRORS: [IntMinerError; 7] = [
     },
     IntMinerError {
         re: regex!(r#"chain#(\d) - Overheated, pcb temp=(\d+)"#),
-        msg: "Chain {} - Overheated, PCB {} C",
+        msg: "Chain {} - Overheated PCB {} C",
         error_type: ErrorType::Temperature,
     },
     IntMinerError {
         re: regex!(r#"chain#(\d) - Overheated, chip temp=(\d+)"#),
-        msg: "Chain {} - Overheated, Chip {} C",
+        msg: "Chain {} - Overheated Chip {} C",
         error_type: ErrorType::Temperature,
     },
     IntMinerError {
