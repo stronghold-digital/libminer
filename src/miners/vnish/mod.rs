@@ -536,4 +536,8 @@ impl Miner for Vnish {
             Err(Error::ApiCallFailed("settings".into()))
         }
     }
+
+    async fn get_hashboard(&mut self) -> Result<String, Error> {
+        Err(Error::NotSupported)
+    }
 }

@@ -514,4 +514,8 @@ impl Miner for Whatsminer {
     async fn set_profile(&mut self, _profile: Profile) -> Result<(), Error> {
         Err(Error::NotSupported)
     }
+
+    async fn get_hashboard(&mut self) -> Result<String, Error> {
+        Err(Error::NotSupported)
+    }
 }

@@ -334,6 +334,10 @@ impl Miner for Minera {
     async fn set_profile(&mut self, _profile: Profile) -> Result<(), Error> {
         Err(Error::NotSupported)
     }
+
+    async fn get_hashboard(&mut self) -> Result<String, Error> {
+        Err(Error::NotSupported)
+    }
 }
 
 /// 2 fan Minervas use this interface
@@ -717,5 +721,25 @@ impl Miner for Minerva {
 
     async fn set_profile(&mut self, _profile: Profile) -> Result<(), Error> {
         Err(Error::NotSupported)
+    }
+
+    async fn get_hashboard(&mut self) -> Result<String, Error> {
+        // Reach back into historical logs for this
+        let re = regex!(r#"type code:([\w\d]+)"#);
+        let resp = self.client.http_client
+            .get(&format!("https://{}/api/v1/cgminer/historyLog", self.ip))
+            .bearer_auth(&self.token)
+            .send()
+            .await?;
+        if resp.status().is_success() {
+            let text = resp.text().await?;
+            if let Some(caps) = re.captures(&text) {
+                Ok(caps.get(1).unwrap().as_str().to_string())
+            } else {
+                Err(Error::ApiCallFailed("No hasboard reported".to_string()))
+            }
+        } else {
+            Err(Error::HttpRequestFailed)
+        }
     }
 }

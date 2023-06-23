@@ -374,6 +374,11 @@ impl Miner for Antminer {
             if stats.chain_num < 3 {
                 errors.insert(MinerError { msg: "Missing Board(s)".into(), error_type: ErrorType::HashBoard });
             }
+            for chain in &stats.chain {
+                if chain.rate_real < chain.rate_ideal * 0.9 {
+                    errors.insert(MinerError { msg: format!("Chain {} - Low Hashrate", chain.index), error_type: ErrorType::HashBoard });
+                }
+            }
         }
         for err in ANTMINER_ERRORS.iter() {
             if let Some(msg) = err.get_err(&log) {
@@ -400,5 +405,12 @@ impl Miner for Antminer {
 
     async fn set_profile(&mut self, _profile: Profile) -> Result<(), Error> {
         Err(Error::NotSupported)
+    }
+
+    async fn get_hashboard(&mut self) -> Result<String, Error> {
+        let logs = self.get_logs().await?.join("\n");
+        let re = regex!(r#"machine : ([\w\d]+)"#);
+        let hashboard = re.captures(&logs).ok_or(Error::ExpectedReturn)?;
+        Ok(hashboard[1].to_string())
     }
 }

@@ -314,4 +314,8 @@ impl Miner for Avalon {
             Err(Error::ApiCallFailed(resp.to_string()))
         }
     }
+
+    async fn get_hashboard(&mut self) -> Result<String, Error> {
+        Err(Error::NotSupported)
+    }
 }
