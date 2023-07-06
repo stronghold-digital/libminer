@@ -444,15 +444,9 @@ impl<'de> MsgDeserializer<'de> {
                 }
             }
             b'n' => {
-                // Check if the next 2 are "an"
-                match self.peek2() {
-                    Some((b'a', b'n')) => {
-                        self.discard();
-                        self.discard();
-                        Ok(Number::F64(f64::NAN))
-                    }
-                    _ => Err(self.error(ErrorCode::InvalidNumber)),
-                }
+                self.expect(b'a')?;
+                self.expect(b'n')?;
+                Ok(Number::F64(f64::NAN))
             }
             _ => Err(self.error(ErrorCode::ExpectedUnsignedInteger)),
         }
@@ -536,6 +530,12 @@ impl<'de> MsgDeserializer<'de> {
                 self.parse_any_number().map(|n| n.neg())
             }
             b'0'..=b'9' => self.parse_any_number(),
+            b'n' => {
+                self.discard();
+                self.expect(b'a')?;
+                self.expect(b'n')?;
+                Ok(Number::F64(f64::NAN))
+            }
             _ => Err(self.error(ErrorCode::InvalidNumber)),
         }
     }
@@ -1067,5 +1067,18 @@ mod tests {
                 foo: vec![-5, -3, -4, -6, 81],
             }
         );
+    }
+
+    #[test]
+    fn test_nan() {
+        let test = r#"foo[nan]"#;
+
+        #[derive(Debug, Deserialize, PartialEq)]
+        struct Test {
+            foo: f32,
+        }
+
+        let test: Test = from_str(test).unwrap();
+        assert!(test.foo.is_nan());
     }
 }
