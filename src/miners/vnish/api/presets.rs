@@ -17,7 +17,7 @@ impl Into<Profile> for Preset {
             "disabled" => Profile::Default,
             _ => {
                 // 3800 watt ~ 106 Th
-                let re = regex!(r"(\d+) Th");
+                let re = regex!(r"(\d+) T");
                 let caps = re.captures(&self.pretty).unwrap();
                 Profile::Preset {
                     power: self.name.parse::<f64>().unwrap(),

@@ -410,20 +410,26 @@ impl Miner for Vnish {
         Ok(
             presets.iter().find(|p| {
                 match p {
-                    Profile::Manual { .. }=> {
-                        settings.miner.overclock.preset == "disabled"
-                        && settings.miner.overclock.globals.volt != settings.ui.consts.overclock.default_voltage
-                        && settings.miner.overclock.globals.freq != settings.ui.consts.overclock.default_freq
-                    },
                     Profile::Default => {
                         settings.miner.overclock.preset == "disabled"
                         && settings.miner.overclock.globals.volt == settings.ui.consts.overclock.default_voltage
                         && settings.miner.overclock.globals.freq == settings.ui.consts.overclock.default_freq
                     },
+                    Profile::Manual { .. }=> {
+                        settings.miner.overclock.preset == "disabled"
+                        && (settings.miner.overclock.globals.volt != settings.ui.consts.overclock.default_voltage
+                        || settings.miner.overclock.globals.freq != settings.ui.consts.overclock.default_freq)
+                    },
                     Profile::Preset { name, .. } => name == &settings.miner.overclock.preset,
                     Profile::LowPower => false,
                 }
-            }).unwrap_or_else(|| unreachable!()).clone()
+            }).unwrap_or_else(|| {
+                tracing::error!("Invalid profile: {:?}", settings.miner.overclock.preset);
+                tracing::error!("Settings: {:?}", settings.miner.overclock);
+                tracing::error!("Constants: {:?}", settings.ui.consts.overclock);
+                tracing::error!("Profiles: {:?}", presets);
+                unreachable!()
+            }).clone()
         )
     }
 

@@ -19,7 +19,7 @@ struct ICoolingMode {
 
 pub enum CoolingMode {
     Auto(u8),
-    Manual,
+    Manual(u8),
     Immersion,
 }
 
@@ -31,7 +31,7 @@ impl<'de> Deserialize<'de> for CoolingMode {
         let cm = ICoolingMode::deserialize(deserializer)?;
         match cm.name.as_str() {
             "auto" => Ok(CoolingMode::Auto(cm.param.ok_or(serde::de::Error::custom("Missing cooling mode parameter"))?)),
-            "manual" => Ok(CoolingMode::Manual),
+            "manual" => Ok(CoolingMode::Manual(cm.param.ok_or(serde::de::Error::custom("Missing cooling mode parameter"))?)),
             "immers" => Ok(CoolingMode::Immersion),
             _ => Err(serde::de::Error::custom(format!("Unknown cooling mode: {}", cm.name))),
         }
@@ -85,19 +85,19 @@ pub struct MiscSettings {
     pub tuner_bad_chip_hr_threshold: usize,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct GlobalOverclockSettings {
     pub freq: u32,
     pub volt: u32,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ChainSettings {
     pub freq: usize,
     pub chips: Vec<usize>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct OverclockSettings {
     pub preset: String,
     pub globals: GlobalOverclockSettings,
