@@ -19,7 +19,7 @@ struct ICoolingMode {
 
 pub enum CoolingMode {
     Auto(u8),
-    Manual(u8),
+    Manual,
     Immersion,
 }
 
@@ -31,7 +31,7 @@ impl<'de> Deserialize<'de> for CoolingMode {
         let cm = ICoolingMode::deserialize(deserializer)?;
         match cm.name.as_str() {
             "auto" => Ok(CoolingMode::Auto(cm.param.ok_or(serde::de::Error::custom("Missing cooling mode parameter"))?)),
-            "manual" => Ok(CoolingMode::Manual(cm.param.ok_or(serde::de::Error::custom("Missing cooling mode parameter"))?)),
+            "manual" => Ok(CoolingMode::Manual),
             "immers" => Ok(CoolingMode::Immersion),
             _ => Err(serde::de::Error::custom(format!("Unknown cooling mode: {}", cm.name))),
         }
