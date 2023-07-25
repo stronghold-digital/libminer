@@ -178,7 +178,7 @@ pub struct MinerSummary {
 
 #[derive(Deserialize)]
 pub struct Summary {
-    pub miner: MinerSummary,
+    pub miner: Option<MinerSummary>,
 }
 
 #[cfg(test)]

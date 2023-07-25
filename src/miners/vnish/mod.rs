@@ -188,13 +188,19 @@ impl Miner for Vnish {
     async fn get_hashrate(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.instant_hashrate)
+        match &summary.miner {
+            Some(miner) => Ok(miner.instant_hashrate),
+            None => Ok(0.0)
+        }
     }
 
     async fn get_power(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.power_usage)
+        match &summary.miner {
+            Some(miner) => Ok(miner.power_usage),
+            None => Ok(0.0)
+        }
     }
 
     async fn get_nameplate_power(&self) -> Result<f64, Error> {
@@ -217,32 +223,47 @@ impl Miner for Vnish {
     async fn get_efficiency(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.power_efficiency as f64)
+        match &summary.miner {
+            Some(miner) => Ok(miner.power_efficiency),
+            None => Ok(0.0)
+        }
     }
 
     async fn get_nameplate_rate(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
         // Convert from GH/s to TH/s
-        Ok(summary.miner.chains.iter().map(|c| c.hashrate_ideal).sum::<f64>() / 1000.0)
+        match &summary.miner {
+            Some(miner) => Ok(miner.chains.iter().map(|c| c.hashrate_ideal).sum::<f64>() / 1000.0),
+            None => Ok(0.0)
+        }
     }
 
     async fn get_temperature(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.chip_temp.max as f64)
+        match &summary.miner {
+            Some(miner) => Ok(miner.chip_temp.max as f64),
+            None => Ok(0.0)
+        }
     }
 
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.cooling.fans.iter().map(|f| f.rpm).collect())
+        match &summary.miner {
+            Some(miner) => Ok(miner.cooling.fans.iter().map(|f| f.rpm).collect()),
+            None => Ok(vec![])
+        }
     }
 
     async fn get_fan_pwm(&self) -> Result<f64, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.cooling.fan_duty as f64)
+        match &summary.miner {
+            Some(miner) => Ok(miner.cooling.fan_duty as f64),
+            None => Ok(0.0)
+        }
     }
 
     async fn get_pools(&self) -> Result<Vec<Pool>, Error> {
@@ -281,7 +302,10 @@ impl Miner for Vnish {
     async fn get_sleep(&self) -> Result<bool, Error> {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(summary.miner.miner_status.miner_state == api::StatusCode::Stopped)
+        match &summary.miner {
+            Some(miner) => Ok(miner.miner_status.miner_state == api::StatusCode::Stopped),
+            None => Ok(false)
+        }
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
@@ -297,21 +321,28 @@ impl Miner for Vnish {
                 // (status = Stopped && miner_state_time >= 120)
                 let summary = self.get_summary().await?;
                 let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
-                if (summary.miner.chip_temp.max - summary.miner.chip_temp.min) < 5 ||
-                    (summary.miner.miner_status.miner_state == api::StatusCode::Stopped && summary.miner.miner_status.miner_state_time >= 120) {
-                        let resp = self.client.http_client
-                            .post(&format!("http://{}/api/v1/mining/start", self.ip))
-                            .bearer_auth(&self.token)
-                            .send()
-                            .await?;
-                        return if resp.status().is_success() {
-                            Ok(())
-                        } else {
-                            Err(Error::ApiCallFailed("mining/start failed".into()))
-                        }
-                    } else {
+                match &summary.miner {
+                    Some(miner) => {
+                        if (miner.chip_temp.max - miner.chip_temp.min) < 5 ||
+                            (miner.miner_status.miner_state == api::StatusCode::Stopped && miner.miner_status.miner_state_time >= 120) {
+                                let resp = self.client.http_client
+                                    .post(&format!("http://{}/api/v1/mining/start", self.ip))
+                                    .bearer_auth(&self.token)
+                                    .send()
+                                    .await?;
+                                return if resp.status().is_success() {
+                                    Ok(())
+                                } else {
+                                    Err(Error::ApiCallFailed("mining/start failed".into()))
+                                }
+                            } else {
+                                Err(Error::ApiCallFailed("mining/start not ready".into()))
+                            }
+                    }
+                    None => {
                         Err(Error::ApiCallFailed("mining/start not ready".into()))
                     }
+                }
             }
             true => {
                 let resp = self.client.http_client
