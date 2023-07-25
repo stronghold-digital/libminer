@@ -318,4 +318,10 @@ impl Miner for Avalon {
     async fn get_hashboard(&mut self) -> Result<String, Error> {
         Err(Error::NotSupported)
     }
+
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        let stats = self.get_estats().await?;
+        let stats = stats.as_ref().unwrap_or_else(|| unreachable!());
+        Ok(stats.sys_status.nboards as usize)
+    }
 }

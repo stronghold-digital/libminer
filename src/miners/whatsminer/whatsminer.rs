@@ -518,4 +518,8 @@ impl Miner for Whatsminer {
     async fn get_hashboard(&mut self) -> Result<String, Error> {
         Err(Error::NotSupported)
     }
+
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        Err(Error::NotSupported)
+    }
 }

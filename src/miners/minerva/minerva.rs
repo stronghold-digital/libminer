@@ -338,6 +338,10 @@ impl Miner for Minera {
     async fn get_hashboard(&mut self) -> Result<String, Error> {
         Err(Error::NotSupported)
     }
+    
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        Err(Error::NotSupported)
+    }
 }
 
 /// 2 fan Minervas use this interface
@@ -737,6 +741,24 @@ impl Miner for Minerva {
                 Ok(caps.get(1).unwrap().as_str().to_string())
             } else {
                 Err(Error::ApiCallFailed("No hasboard reported".to_string()))
+            }
+        } else {
+            Err(Error::HttpRequestFailed)
+        }
+    }
+
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        let resp = self.client.http_client
+            .get(&format!("https://{}/api/v1/systemInfo/hashBoards", self.ip))
+            .bearer_auth(&self.token)
+            .send()
+            .await?;
+        if resp.status().is_success() {
+            let boards = resp.json::<cgminer::HashBoardsResp>().await?;
+            if let Some(boards) = boards.data {
+                Ok(boards.len())
+            } else {
+                Err(Error::ApiCallFailed("No hashboards reported".to_string()))
             }
         } else {
             Err(Error::HttpRequestFailed)

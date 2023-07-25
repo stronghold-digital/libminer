@@ -15,7 +15,7 @@ chrono = {version="0.4", features=["serde"]}
 reqwest = {version="0.11", features=["json", "multipart", "gzip", "cookies"]}
 digest_auth = "0.3"
 thiserror = "1.0"
-openssl = "0.10"
+openssl = { version="0.10", features=["vendored"] }
 md-5 = "0.9"
 sha2 = "0.9"
 lazy-regex = "2.3"
@@ -24,7 +24,6 @@ scraper = "0.13"
 phf = { version="0", features=["macros"], optional=true }
 
 [features]
-vendored-openssl = ["openssl/vendored"]
 minerva = []
 antminer = ["dep:phf"]
 whatsminer = ["dep:phf"]

@@ -413,4 +413,14 @@ impl Miner for Antminer {
         let hashboard = re.captures(&logs).ok_or(Error::ExpectedReturn)?;
         Ok(hashboard[1].to_string())
     }
+
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        let stats = self.stats().await?;
+        let stats = stats.as_ref().unwrap_or_else(|| unreachable!());
+        if let Some(stat) = stats.stats.get(0) {
+            Ok(stat.chain_num as usize)
+        } else {
+            Ok(0)
+        }
+    }
 }

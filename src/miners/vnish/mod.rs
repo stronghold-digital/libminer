@@ -577,4 +577,13 @@ impl Miner for Vnish {
     async fn get_hashboard(&mut self) -> Result<String, Error> {
         Err(Error::NotSupported)
     }
+
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        let summary = self.get_summary().await?;
+        let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
+        match &summary.miner {
+            Some(miner) => Ok(miner.chains.iter().filter(|c| c.status.state != api::ChainState::Failure).count()),
+            None => Ok(0)
+        }
+    }
 }

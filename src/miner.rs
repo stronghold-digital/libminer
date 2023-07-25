@@ -146,6 +146,8 @@ pub trait Miner {
     async fn set_profile(&mut self, profile: Profile) -> Result<(), Error>;
 
     async fn get_hashboard(&mut self) -> Result<String, Error>;
+
+    async fn get_hashboards(&self) -> Result<usize, Error>;
 }
 
 pub struct LockMiner {
@@ -271,5 +273,9 @@ impl Miner for LockMiner {
 
     async fn get_hashboard(&mut self) -> Result<String, Error> {
         self.miner.get_hashboard().await
+    }
+
+    async fn get_hashboards(&self) -> Result<usize, Error> {
+        self.miner.get_hashboards().await
     }
 }
