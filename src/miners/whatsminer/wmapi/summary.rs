@@ -98,10 +98,10 @@ pub struct Summary {
     pub security_mode: Option<usize>,
     #[serde(rename = "Liquid Cooling")]
     pub liquid_cooling: Option<bool>,
-    #[serde(rename = "Hash Stable")]
-    pub hash_stable: bool,
-    #[serde(rename = "Hash Stable Cost Seconds")]
-    pub hash_stable_cost_seconds: Option<usize>,
+    // #[serde(rename = "Hash Stable")]
+    // pub hash_stable: bool,
+    // #[serde(rename = "Hash Stable Cost Seconds")]
+    // pub hash_stable_cost_seconds: Option<usize>,
     //#[serde(rename = "Hash Deviation%")]
     //pub hash_deviation_per: Option<f64>,
     #[serde(rename = "Target Freq")]

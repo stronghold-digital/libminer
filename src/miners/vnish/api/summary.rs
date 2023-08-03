@@ -144,8 +144,6 @@ pub struct Chain {
     pub frequency: f64,
     pub hashrate_ideal: f64,
     pub hashrate_rt: f64,
-    pub pcb_temp_sens: Vec<TempSensor>,
-    pub chip_temp_sens: Vec<TempSensor>,
     pub hw_errors: i32,
     pub voltage: i64,
     pub chip_statuses: ChipStatus,
@@ -156,9 +154,6 @@ pub struct Chain {
 pub struct MinerSummary {
     pub miner_status: MinerSummaryStatus,
     pub miner_type: String,
-    pub hardware_version: String,
-    pub cgminer_version: String,
-    pub compile_time: String,
     pub average_hashrate: f64,
     pub instant_hashrate: f64,
     pub pcb_temp: TempMinMax,

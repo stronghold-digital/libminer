@@ -44,35 +44,35 @@ pub struct PoolDesc {
     #[serde(rename = "Last Share Time")]
     pub last_share_time: usize,
     #[serde(rename = "Diff1 Shares")]
-    pub diff1_shares: usize,
-    #[serde(rename = "Proxy Type")]
-    pub proxy_type: String,
-    #[serde(rename = "Proxy")]
-    pub proxy: String,
-    #[serde(rename = "Difficulty Accepted")]
-    pub difficulty_accepted: f64,
-    #[serde(rename = "Difficulty Rejected")]
-    pub difficulty_rejected: f64,
-    #[serde(rename = "Difficulty Stale")]
-    pub difficulty_stale: f64,
-    #[serde(rename = "Last Share Difficulty")]
-    pub last_share_difficulty: f64,
-    #[serde(rename = "Work Difficulty")]
-    pub work_difficulty: f64,
-    #[serde(rename = "Has Stratum")]
-    pub has_stratum: Bool,
-    #[serde(rename = "Stratum Active")]
-    pub stratum_active: bool,
-    #[serde(rename = "Stratum URL")]
-    pub stratum_url: String,
-    #[serde(rename = "Stratum Difficulty")]
-    pub stratum_difficulty: f64,
+    pub diff1_shares: Option<usize>,
+    // #[serde(rename = "Proxy Type")]
+    // pub proxy_type: String,
+    // #[serde(rename = "Proxy")]
+    // pub proxy: String,
+    // #[serde(rename = "Difficulty Accepted")]
+    // pub difficulty_accepted: f64,
+    // #[serde(rename = "Difficulty Rejected")]
+    // pub difficulty_rejected: f64,
+    // #[serde(rename = "Difficulty Stale")]
+    // pub difficulty_stale: f64,
+    // #[serde(rename = "Last Share Difficulty")]
+    // pub last_share_difficulty: f64,
+    // #[serde(rename = "Work Difficulty")]
+    // pub work_difficulty: f64,
+    // #[serde(rename = "Has Stratum")]
+    // pub has_stratum: Bool,
+    // #[serde(rename = "Stratum Active")]
+    // pub stratum_active: bool,
+    // #[serde(rename = "Stratum URL")]
+    // pub stratum_url: String,
+    // #[serde(rename = "Stratum Difficulty")]
+    // pub stratum_difficulty: f64,
     #[serde(rename = "Has Vmask")]
     pub has_vmask: Option<bool>,
     #[serde(rename = "Has GBT")]
     pub has_gbt: Option<bool>,
-    #[serde(rename = "Best Share")]
-    pub best_share: usize,
+    // #[serde(rename = "Best Share")]
+    // pub best_share: usize,
     #[serde(rename = "Pool Rejected%")]
     pub pool_rejected_percent: f64,
     #[serde(rename = "Pool Stale%")]
