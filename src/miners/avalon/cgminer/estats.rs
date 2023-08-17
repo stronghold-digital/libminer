@@ -79,10 +79,10 @@ pub struct EStats {
     pub fan2: u32,
     /// Fan3 speed
     #[serde(rename = "Fan3")]
-    pub fan3: u32,
+    pub fan3: Option<u32>,
     /// Fan4 speed
     #[serde(rename = "Fan4")]
-    pub fan4: u32,
+    pub fan4: Option<u32>,
     /// Fan PMW signal
     #[serde(rename = "FanR")]
     pub fanr: f64,

@@ -170,12 +170,22 @@ impl Miner for Avalon {
     async fn get_fan_speed(&self) -> Result<Vec<u32>, Error> {
         let estats = self.get_estats().await?;
         let estats = estats.as_ref().unwrap_or_else(|| unreachable!());
-        Ok(vec![
-            estats.fan1,
-            estats.fan2,
-            estats.fan3,
-            estats.fan4,
-        ])
+        match &estats.fan3 {
+            Some(_) => {
+                Ok(vec![
+                    estats.fan1,
+                    estats.fan2,
+                    estats.fan3.unwrap_or_else(|| unreachable!()),
+                    estats.fan4.unwrap_or_else(|| unreachable!()),
+                ])
+            },
+            None => {
+                Ok(vec![
+                    estats.fan1,
+                    estats.fan2,
+                ])
+            }
+        }
     }
 
     async fn get_fan_pwm(&self) -> Result<f64, Error> {

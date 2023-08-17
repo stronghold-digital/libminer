@@ -37,14 +37,14 @@ mod tests {
 
     #[test]
     fn test_preset() {
-        let json = r#"{"name":"3800","pretty":"3800 watt ~ 106 Th","status":"untuned","modded_psu_required":false}"#;
+        let json = r#"{"name": "2000","pretty": "2000 watt ~ 80 TH","status": "untuned","modded_psu_required": false}"#;
         let preset: Preset = serde_json::from_str(json).unwrap();
         let profile: Profile = preset.into();
         match profile {
             Profile::Preset { name, power, ths } => {
-                assert_eq!(name, "3800");
-                assert_eq!(power, 3800.0);
-                assert_eq!(ths, 106.0);
+                assert_eq!(name, "2000");
+                assert_eq!(power, 2000.0);
+                assert_eq!(ths, 80.0);
             },
             _ => unreachable!(),
         }
