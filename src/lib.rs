@@ -319,19 +319,18 @@ impl Client {
                     let re = regex!(r"Minerva(.|\n)+umi");
                     let resp = self.http_client.get(&format!("https://{}", ip)).send().await;
                     if let Ok(resp) = resp {
-                        let text = resp.text().await?;
+                    let text = resp.text().await?;
                         if re.is_match(&text) {
                             debug!("Found Minerva (Custom Interface) at {}", ip);
                             return Ok(Box::new(minerva::Minerva::new(self.clone(), ip.into(), port)));
                         }
-                    }
-
-                    // 4 fan minervas permit a request to /index.php/app/stats even when not logged in
-                    debug!("Checking for minera Minerva...");
-                    let resp = self.http_client.head(&format!("http://{}/index.php/app/stats", ip)).send().await?;
-                    if resp.status() == reqwest::StatusCode::OK {
-                        debug!("Found Minerva at {}", ip);
-                        return Ok(Box::new(minerva::Minera::new(self.clone(), ip.into(), port)));
+                        // 4 fan minervas permit a request to /index.php/app/stats even when not logged in
+                        debug!("Checking for minera Minerva...");
+                        let re2 = regex!(r"/assets/js/minera.js");
+                        if re2.is_match(&text) {
+                            debug!("Found Minerva at {}", ip);
+                            return Ok(Box::new(minerva::Minera::new(self.clone(), ip.into(), port)));
+                        }
                     }
                 }
 
