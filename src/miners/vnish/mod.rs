@@ -198,7 +198,12 @@ impl Miner for Vnish {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
         match &summary.miner {
-            Some(miner) => Ok(miner.power_usage),
+            Some(miner) =>
+                if miner.power_usage < 0.1 && miner.average_hashrate > 0.1 {
+                    Ok(miner.average_hashrate * 36.0)
+                } else {
+                    Ok(miner.power_usage)
+                },
             None => Ok(0.0)
         }
     }
