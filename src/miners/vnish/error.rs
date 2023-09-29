@@ -2,7 +2,7 @@ use lazy_regex::regex;
 
 use crate::miner::{IntMinerError, ErrorType};
 
-pub(crate) static VNISH_ERRORS: [IntMinerError; 8] = [
+pub(crate) static VNISH_ERRORS: [IntMinerError; 9] = [
     IntMinerError {
         re: regex!(r#"chain#(\d) - Failed to init pic controller"#),
         msg: "Chain {} - Failed to init pic controller",
@@ -41,6 +41,11 @@ pub(crate) static VNISH_ERRORS: [IntMinerError; 8] = [
     IntMinerError {
         re: regex!(r#"chain#(\d) - Failed to init board temp sensors"#),
         msg: "Chain {} - Failed to init board temp sensors",
+        error_type: ErrorType::HashBoard,
+    },
+    IntMinerError {
+        re: regex!(r#"ERROR: chain#(\d) - Failed to power on the chain"#),
+        msg: "Chain {} - Failed to power on the chain",
         error_type: ErrorType::HashBoard,
     }
 ];
