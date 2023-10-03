@@ -199,7 +199,7 @@ impl Miner for Vnish {
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
         match &summary.miner {
             Some(miner) =>
-                if miner.power_usage < 0.1 && miner.average_hashrate > 0.1 {
+                if miner.power_usage < 1.0 && miner.average_hashrate > 0.1 {
                     Ok(miner.average_hashrate * 36.0)
                 } else {
                     Ok(miner.power_usage)
@@ -220,7 +220,7 @@ impl Miner for Vnish {
                 // Map s19-88 to s19
                 let model = model.split('-').next().unwrap_or_else(|| unreachable!());
                 let eff = POWER_MAP.get(model).ok_or(Error::ApiCallFailed("Invalid model".into()))?;
-                Ok(eff.0 * self.get_nameplate_rate().await?)
+                Ok(eff.0 * 92.0)
             },
         }
     }
