@@ -20,16 +20,16 @@ use super::cgi::SetConf;
 /// If more than 1 variant exists, this will be an average of all variants
 /// Antminer rates these @25C
 /// Second number is max fan speed
-pub static POWER_MAP: phf::Map<&'static str, (f64, f64)> = phf_map! {
-    "t19" => (37.5, 6000.0),
-    "s19" => (34.7, 6000.0),
-    "s19j" => (34.5, 6000.0),
-    "s19a" => (34.5, 7100.0),
-    "s19pro" => (30.0, 6000.0),
-    "s19jpro" => (29.5, 6000.0),
-    "s19apro" => (29.5, 6000.0),
-    "s19jpro+" => (27.5, 6000.0),
-    "s19xp" => (22.0, 6000.0),
+pub static POWER_MAP: phf::Map<&'static str, (f64, f64, f64)> = phf_map! {
+    "t19" => (37.5, 6000.0, 85.0),
+    "s19" => (34.7, 6000.0, 90.0),
+    "s19j" => (34.5, 6000.0, 94.0),
+    "s19a" => (34.5, 7100.0, 95.0),
+    "s19pro" => (30.0, 6000.0, 100.0),
+    "s19jpro" => (29.5, 6000.0, 100.0),
+    "s19apro" => (29.5, 6000.0, 110.0),
+    "s19jpro+" => (27.5, 6000.0, 120.0),
+    "s19xp" => (22.0, 6000.0, 125.0),
 };
 
 pub struct Antminer {
@@ -215,8 +215,8 @@ impl Miner for Antminer {
         if let Some(stat) = stats.stats.get(0) {
             Ok(stat.rate_ideal / 1000.0)
         } else {
-            //TODO: Decide to return an error or just an empty vector
-            Ok(0.0)
+            let model = self.get_model().await?;
+            Ok(POWER_MAP.get(model.as_str()).ok_or(Error::UnknownModel(model))?.2)
         }
     }
 
