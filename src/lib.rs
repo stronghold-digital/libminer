@@ -277,7 +277,7 @@ impl Client {
         debug!("Trying HTTP detection...");
         // To reduce traffic and since detection is entirely on status response, we can just send a HEAD request
         // Start with Antminer, if this fails to connect return a timeout
-        match self.http_client.head(&format!("http://{}/", ip)).send().await {
+        match self.http_client.get(&format!("http://{}/", ip)).send().await {
             Ok(resp) => {
                 debug!("Received response from HTTP API...");
                 //TODO: In theory we could probably do this with a single request
@@ -314,16 +314,17 @@ impl Client {
                 }
                 #[cfg(feature = "minerva")]
                 {
-                    // 2 fan minervas have the title Minerva and are based off umi
-                    debug!("Checking for custom Minerva...");
-                    let text = resp.text().await?;
                     // 4 fan minervas permit a request to /index.php/app/stats even when not logged in
                     debug!("Checking for minera Minerva...");
+                    let text = resp.text().await?;
                     let re2 = regex!(r"minera.js");
                     if re2.is_match(&text) {
                         debug!("Found Minerva at {}", ip);
                         return Ok(Box::new(minerva::Minera::new(self.clone(), ip.into(), port)));
                     }
+                    println!("{}", text);
+                    // 2 fan minervas have the title Minerva and are based off umi
+                    debug!("Checking for custom Minerva...");
                     let re = regex!(r"Minerva(.|\n)+umi");
                     let resp = self.http_client.get(&format!("https://{}", ip)).send().await;
                     if let Ok(resp) = resp {
