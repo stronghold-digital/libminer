@@ -4,10 +4,10 @@ use crate::Pool;
 use super::UI;
 
 #[derive(Serialize)]
-pub struct VPool {
-    pub url: String,
-    pub user: String,
-    pub pass: String,
+pub struct VPool<'a> {
+    pub url: &'a str,
+    pub user: &'a str,
+    pub pass: &'a str,
     pub order: usize,
 }
 
@@ -64,6 +64,9 @@ impl Serialize for CoolingMode {
 #[derive(Deserialize, Serialize)]
 pub struct CoolingSettings {
     pub mode: CoolingMode,
+    pub fan_min_count: Option<u32>,
+    pub fan_min_duty: Option<u32>,
+    pub silent_start: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -85,19 +88,19 @@ pub struct MiscSettings {
     pub tuner_bad_chip_hr_threshold: usize,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GlobalOverclockSettings {
     pub freq: u32,
     pub volt: u32,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ChainSettings {
     pub freq: usize,
     pub chips: Vec<usize>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct OverclockSettings {
     pub preset: String,
     pub globals: GlobalOverclockSettings,
@@ -108,7 +111,7 @@ pub struct OverclockSettings {
 pub struct HotelPool {
     pub url: String,
     pub worker: String,
-    pub percent: f64,
+    pub percent: f32,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -165,7 +168,7 @@ pub struct Settings {
     pub miner: MinerSettings,
     // ui - UI shit we don't care about
     pub regional: RegionalSettings,
-    pub ssh: SshSettings,
+    pub ssh: Option<SshSettings>,
     pub password: Option<PasswordSettings>,
     #[serde(skip_serializing)]
     pub ui: UI,
@@ -182,6 +185,6 @@ mod tests {
         let settings: Settings = from_str(s).unwrap();
         assert_eq!(settings.miner.pools.len(), 3);
         assert_eq!(settings.miner.pools[0].url, "btc.foundryusapool.com:3333");
-        assert_eq!(settings.miner.pools[0].username, "pct19.47.4x243");
+        assert_eq!(settings.miner.pools[0].url, "pct19.47.4x243");
     }
 }

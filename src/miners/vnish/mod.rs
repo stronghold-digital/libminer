@@ -280,10 +280,10 @@ impl Miner for Vnish {
     async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
         let js = json!({
             "miner": {
-                "pools": pools.into_iter().enumerate().map(|(i, p)| api::VPool {
-                    url: p.url,
-                    user: p.username,
-                    pass: p.password.unwrap_or("".into()),
+                "pools": pools.iter().enumerate().map(|(i, p)| api::VPool {
+                    url: &p.url,
+                    user: &p.username,
+                    pass: p.password.as_ref().map(|s| s.as_str()).unwrap_or(""),
                     order: i,
                 }).collect::<Vec<_>>(),
             }
@@ -328,7 +328,7 @@ impl Miner for Vnish {
                 let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
                 match &summary.miner {
                     Some(miner) => {
-                        if (miner.chip_temp.max - miner.chip_temp.min) < 5 ||
+                        if (miner.chip_temp.max - miner.chip_temp.min) < 5.0 ||
                             (miner.miner_status.miner_state == api::StatusCode::Stopped && miner.miner_status.miner_state_time >= 120) {
                                 let resp = self.client.http_client
                                     .post(&format!("http://{}/api/v1/mining/start", self.ip))

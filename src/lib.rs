@@ -295,7 +295,7 @@ impl Client {
                 {
                     debug!("Checking for VNISH...");
                     if let Ok(resp) = self.http_client.get(&format!("http://{}/", ip)).send().await {
-                        let re = regex!(r"miner-dash-app");
+                        let re = regex!(r#"(<title>miner-dash-app</title>|<meta name="firmware" content="AnthillOS">)"#);
                         if re.is_match(&resp.text().await?) {
                             debug!("Found VNISH at {}", ip);
                             return Ok(Box::new(vnish::Vnish::new(self.clone(), ip.into(), port)));
@@ -327,7 +327,7 @@ impl Client {
                     let re = regex!(r"Minerva(.|\n)+umi");
                     let resp = self.http_client.get(&format!("https://{}", ip)).send().await;
                     if let Ok(resp) = resp {
-                    let text = resp.text().await?;
+                        let text = resp.text().await?;
                         if re.is_match(&text) {
                             debug!("Found Minerva (Custom Interface) at {}", ip);
                             return Ok(Box::new(minerva::Minerva::new(self.clone(), ip.into(), port)));
