@@ -316,6 +316,14 @@ impl Client {
                 {
                     // 2 fan minervas have the title Minerva and are based off umi
                     debug!("Checking for custom Minerva...");
+                    let text = resp.text().await?;
+                    // 4 fan minervas permit a request to /index.php/app/stats even when not logged in
+                    debug!("Checking for minera Minerva...");
+                    let re2 = regex!(r"minera.js");
+                    if re2.is_match(&text) {
+                        debug!("Found Minerva at {}", ip);
+                        return Ok(Box::new(minerva::Minera::new(self.clone(), ip.into(), port)));
+                    }
                     let re = regex!(r"Minerva(.|\n)+umi");
                     let resp = self.http_client.get(&format!("https://{}", ip)).send().await;
                     if let Ok(resp) = resp {
@@ -323,13 +331,6 @@ impl Client {
                         if re.is_match(&text) {
                             debug!("Found Minerva (Custom Interface) at {}", ip);
                             return Ok(Box::new(minerva::Minerva::new(self.clone(), ip.into(), port)));
-                        }
-                        // 4 fan minervas permit a request to /index.php/app/stats even when not logged in
-                        debug!("Checking for minera Minerva...");
-                        let re2 = regex!(r"/assets/js/minera.js");
-                        if re2.is_match(&text) {
-                            debug!("Found Minerva at {}", ip);
-                            return Ok(Box::new(minerva::Minera::new(self.clone(), ip.into(), port)));
                         }
                     }
                 }
