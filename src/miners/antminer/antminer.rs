@@ -30,6 +30,7 @@ pub static POWER_MAP: phf::Map<&'static str, (f64, f64, f64)> = phf_map! {
     "s19apro" => (29.5, 6000.0, 110.0),
     "s19jpro+" => (27.5, 6000.0, 120.0),
     "s19xp" => (22.0, 6000.0, 125.0),
+    "s19kpro" => (23.0, 6000.0, 120.0),
 };
 
 pub struct Antminer {
