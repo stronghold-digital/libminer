@@ -12,9 +12,9 @@ pub struct Chain {
     pub asic_num: usize,
     /// String of detected ASIC chips, o for each successful with space between groups
     pub asic: String,
-    pub temp_chip: Vec<usize>,
-    pub temp_pcb: Vec<usize>,
-    pub temp_pic: Vec<usize>,
+    pub temp_chip: Vec<i32>,
+    pub temp_pcb: Vec<i32>,
+    pub temp_pic: Vec<i32>,
     pub hw: u16,
     pub eeprom_loaded: bool,
     pub sn: String,
