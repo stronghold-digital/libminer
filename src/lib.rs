@@ -322,7 +322,6 @@ impl Client {
                         debug!("Found Minerva at {}", ip);
                         return Ok(Box::new(minerva::Minera::new(self.clone(), ip.into(), port)));
                     }
-                    println!("{}", text);
                     // 2 fan minervas have the title Minerva and are based off umi
                     debug!("Checking for custom Minerva...");
                     let re = regex!(r"Minerva(.|\n)+umi");
