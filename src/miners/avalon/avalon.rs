@@ -206,8 +206,15 @@ impl Miner for Avalon {
         )
     }
 
-    async fn set_pools(&mut self, _pools: Vec<Pool>) -> Result<(), Error> {
-        Err(Error::NotSupported)
+    async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
+        for (i, pool) in pools.iter().enumerate() {
+            let cmd = format!(r#"ascset|0,setpool,{},{},{},{},{},{}"#, self.username, self.password, i, pool.url, pool.username, pool.password.as_ref().map(|s| s.as_str()).unwrap_or(""));
+            let resp = self.client.send_recv(&self.ip, 4028, &cmd).await?;
+            if !resp.to_lowercase().contains("success") {
+                return Err(Error::ApiCallFailed(resp));
+            }
+        }
+        Ok(())
     }
 
     async fn get_sleep(&self) -> Result<bool, Error> {
