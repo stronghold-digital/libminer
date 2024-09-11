@@ -301,7 +301,7 @@ impl Miner for Avalon {
         let estats = estats.as_ref().unwrap_or_else(|| unreachable!());
 
         match estats.workmode {
-            0 => Ok(Profile::LowPower),
+            2 | 0 => Ok(Profile::LowPower),
             1 => Ok(Profile::Default),
             _ => Err(Error::InvalidResponse),
         }
@@ -316,10 +316,12 @@ impl Miner for Avalon {
 
     async fn set_profile(&mut self, profile: Profile) -> Result<(), Error> {
         // If success response is "ASC 0 set info: WORKMODE[1]"
+        let model = self.get_model().await?;
         let re = regex!(r#"msg=asc 0 set info: workmode\[(\d)\]"#);
-        let workmode = match profile {
-            Profile::Default => 1,
-            Profile::LowPower => 0,
+        let workmode = match (model.as_str(), profile) {
+            ("A1466", Profile::LowPower) => 2,
+            (_, Profile::Default) => 1,
+            (_, Profile::LowPower) => 0,
             _ => return Err(Error::NotSupported),
         };
         let cmd = format!(r#"ascset|0,workmode,{}"#, workmode);
