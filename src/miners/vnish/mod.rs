@@ -380,7 +380,7 @@ impl Miner for Vnish {
         }
 
         let resp = self.client.http_client
-            .post(&format!("http://{}/api/v1/mining/find_miner", self.ip))
+            .post(&format!("http://{}/api/v1/mining/find-miner", self.ip))
             .bearer_auth(&self.token)
             .json(&serde_json::json!({"on": blink}))
             .send()
