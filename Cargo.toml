@@ -23,6 +23,9 @@ base64 = "0.13"
 scraper = "0.13"
 phf = { version="0", features=["macros"], optional=true }
 
+[dev-dependencies]
+tokio = {version="1.19", features=["full"]}
+
 [features]
 minerva = []
 antminer = ["dep:phf"]

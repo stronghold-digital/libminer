@@ -380,7 +380,7 @@ impl Miner for Vnish {
         }
 
         let resp = self.client.http_client
-            .post(&format!("http://{}/api/v1/mining/find-miner", self.ip))
+            .post(&format!("http://{}/api/v1/find-miner", self.ip))
             .bearer_auth(&self.token)
             .json(&serde_json::json!({"on": blink}))
             .send()
@@ -389,7 +389,7 @@ impl Miner for Vnish {
         if resp.status().is_success() {
             Ok(())
         } else {
-            Err(Error::ApiCallFailed("mining/find_miner failed".into()))
+            Err(Error::ApiCallFailed("find_miner failed".into()))
         }
     }
 

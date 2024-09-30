@@ -37,5 +37,5 @@ pub struct MinerStatus {
     pub miner_state_time: usize,
     pub find_miner: bool,
     pub unlocked: bool,
-    pub warranty: bool,
+    // pub warranty: bool,
 }
