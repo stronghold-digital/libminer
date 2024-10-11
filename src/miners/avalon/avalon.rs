@@ -23,6 +23,7 @@ static EFF_MAP: phf::Map<&'static str, f64> = phf_map!{
     "A1266" => 35.0,
     "A1346" => 30.0,
     "A1366" => 25.0,
+    "A1466" => 23.3,
 };
 
 pub struct Avalon {
