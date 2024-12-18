@@ -412,3 +412,24 @@ impl Client {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_miner() {
+        let client = ClientBuilder::new().build().unwrap();
+
+        let mut miner = client.get_miner("10.136.101.1", None).await.unwrap();
+
+        miner.auth("root", "root").await.unwrap();
+
+        miner.get_sleep().await.unwrap();
+        miner.get_model().await.unwrap();
+        miner.get_efficiency().await.unwrap();
+        miner.get_hashrate().await.unwrap();
+        miner.get_nameplate_power().await.unwrap();
+        miner.get_power().await.unwrap();
+    }
+}
