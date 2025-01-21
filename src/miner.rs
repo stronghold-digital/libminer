@@ -6,10 +6,11 @@ use crate::{Client, Cache};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Pool {
+    #[serde(default)]
     pub url: String,
-    #[serde(rename = "user")]
+    #[serde(default, rename = "user")]
     pub username: String,
-    #[serde(rename = "pass")]
+    #[serde(default, rename = "pass")]
     pub password: Option<String>,
 }
 
