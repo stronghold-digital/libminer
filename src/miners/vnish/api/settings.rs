@@ -123,11 +123,11 @@ pub struct HotelFee {
 #[derive(Deserialize, Serialize)]
 pub struct MinerSettings {
     pub cooling: CoolingSettings,
-    pub devfee: DevFee,
+    // pub devfee: DevFee,
     pub misc: MiscSettings,
     pub overclock: OverclockSettings,
     pub pools: Vec<Pool>,
-    pub hotel_fee: HotelFee,
+    // pub hotel_fee: HotelFee,
 }
 
 #[derive(Deserialize, Serialize)]
