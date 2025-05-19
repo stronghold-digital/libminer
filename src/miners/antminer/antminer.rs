@@ -33,6 +33,7 @@ pub static POWER_MAP: phf::Map<&'static str, (f64, f64, f64)> = phf_map! {
     "s19kpro" => (23.0, 6000.0, 120.0),
     "s21" => (17.5, 7000.0, 200.0),
     "t21" => (19.0, 7000.0, 190.0),
+    "s21+" => (16.5, 7000.0, 216.0),
     "s21pro" => (15.0, 7000.0, 234.0),
 };
 
@@ -80,7 +81,10 @@ impl Antminer {
                 }
                 return Err(Error::HttpRequestFailed);
             }
-            *summary = Some(resp.json().await?);
+            let text = resp.text().await?;
+            println!("Summary: {}", text);
+            *summary = Some(serde_json::from_str(&text)?);
+            // *summary = Some(resp.json().await?);
         }
         Ok(summary)
     }
@@ -298,7 +302,7 @@ impl Miner for Antminer {
         let miner_conf = self.miner_conf().await?;
         let miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!());
 
-        Ok(miner_conf.bitmain_work_mode == "1")
+        Ok(miner_conf.bitmain_work_mode.as_int() == 1)
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
@@ -426,5 +430,22 @@ impl Miner for Antminer {
         } else {
             Ok(0)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::miner::Miner;
+    use crate::ClientBuilder;
+
+    #[tokio::test]
+    async fn test_get_hashrate() {
+        let client = ClientBuilder::new().build().unwrap();
+        let mut miner = Antminer::new(client, "10.126.178.6".to_string(), 80);
+        miner.auth("root", "root").await.unwrap();
+        miner.get_hashrate().await.unwrap();
+        miner.get_power().await.unwrap();
+        miner.get_sleep().await.unwrap();
     }
 }
