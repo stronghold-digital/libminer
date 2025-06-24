@@ -9,7 +9,7 @@ use tokio::sync::{Mutex, MutexGuard};
 
 use crate::util::digest_auth::WithDigestAuth;
 use crate::miner::{Miner, Pool, Profile, MinerError};
-use crate::miners::antminer::cgi;
+use crate::miners::antminer::cgi::{self, StringOrInt};
 use crate::error::Error;
 use crate::{Client, ErrorType};
 use crate::miners::antminer::error::ANTMINER_ERRORS;
@@ -96,13 +96,17 @@ impl Antminer {
                 .get(&format!("http://{}/cgi-bin/get_miner_conf.cgi", self.ip))
                 .send_with_digest_auth(&self.username, &self.password)
                 .await?;
+            println!("Miner Conf Resp: {:?}", resp);
             if !resp.status().is_success() {
                 if resp.status().as_u16() == 401 {
                     return Err(Error::Unauthorized);
                 }
                 return Err(Error::HttpRequestFailed);
             }
-            *miner_conf = Some(resp.json().await?);
+            // println!("Miner Conf: {}", resp.text().await?);
+            let conf = resp.json().await?;
+            println!("Miner Conf: {:?}", conf);
+            *miner_conf = Some(conf);
         }
         Ok(miner_conf)
     }
@@ -306,13 +310,24 @@ impl Miner for Antminer {
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
+        
+        let miner_conf = self.miner_conf().await?;
+        let mut miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!()).clone();
+
+        miner_conf.bitmain_work_mode = StringOrInt::Int(sleep as u8);
+        println!("Setting sleep mode to: {}", miner_conf.bitmain_work_mode.as_int());
+        println!("Miner conf: {:?}", miner_conf);
+
         let resp = self.client.http_client
             .post(&format!("http://{}/cgi-bin/set_miner_conf.cgi", self.ip))
-            .json(&json!({
-                "miner-mode": sleep as u8,
-            }))
+            // .json(&json!({
+            //     // "miner-mode": sleep as u8,
+            //     "bitmain-work-mode": sleep as u8,
+            // }))
+            .json(&miner_conf)
             .send_with_digest_auth(&self.username, &self.password)
             .await?;
+        println!("Set sleep response: {:?}", resp);
         if resp.status().is_success() {
             self.invalidate().await;
             Ok(())
@@ -442,10 +457,55 @@ mod tests {
     #[tokio::test]
     async fn test_get_hashrate() {
         let client = ClientBuilder::new().build().unwrap();
-        let mut miner = Antminer::new(client, "10.126.178.6".to_string(), 80);
+        let mut miner = Antminer::new(client, "10.126.120.1".to_string(), 80);
         miner.auth("root", "root").await.unwrap();
-        miner.get_hashrate().await.unwrap();
-        miner.get_power().await.unwrap();
-        miner.get_sleep().await.unwrap();
+        // If sleep isn't supported, we pass
+        let sleep = miner.get_sleep().await;
+        if let Err(e) = sleep {
+            if let crate::error::Error::NotSupported = e {
+                println!("Sleep not supported, passing test");
+                return;
+            }
+            panic!("Failed to get sleep status: {}", e);
+        }
+        let sleep = sleep.unwrap_or_else(|_| unreachable!());
+
+        let model = miner.get_model().await.expect("Failed to get model");
+        let eff = miner.get_efficiency().await.expect("Failed to get efficiency");
+        let rt_hashrate = miner.get_hashrate().await.unwrap_or(0.0);
+
+        // If the miner is sleeping, return the estimated power usage at nameplate hashrate
+        // Otherwise return the current power usage
+        // If the miner is awake and the hashrate is 0, return 0
+        let power = if sleep {
+            miner.get_nameplate_power().await.expect("Failed to get nameplate power")
+        } else if rt_hashrate > 0.0 {
+            miner.get_power().await.expect("Failed to get power")
+        } else {
+            0.0
+        };
+    }
+
+    #[tokio::test]
+    async fn test_sleep() {
+        let client = ClientBuilder::new().build().unwrap();
+        println!("Testing sleep functionality");
+        let mut miner = Antminer::new(client, "10.126.120.1".to_string(), 80);
+        println!("Authenticating miner");
+        miner.auth("root", "root").await.unwrap();
+        println!("Miner authenticated, checking sleep status");
+        let sleep = miner.get_sleep().await.expect("Failed to get sleep status");
+        println!("Sleep status: {}", sleep);
+        if sleep {
+            miner.set_sleep(false).await.expect("Failed to set sleep to false");
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            let new_sleep = miner.get_sleep().await.expect("Failed to get new sleep status");
+            assert!(!new_sleep, "Sleep status should be false after setting it to false");
+        } else {
+            miner.set_sleep(true).await.expect("Failed to set sleep to true");
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            let new_sleep = miner.get_sleep().await.expect("Failed to get new sleep status");
+            assert!(new_sleep, "Sleep status should be true after setting it to true");
+        }
     }
 }

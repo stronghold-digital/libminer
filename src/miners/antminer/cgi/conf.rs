@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::Pool;
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum StringOrInt {
     String(String),
@@ -17,7 +17,7 @@ impl StringOrInt {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct GetConfResponse {
     // #[serde(rename = "api-allow")]
     // pub api_allow: String,
@@ -29,20 +29,22 @@ pub struct GetConfResponse {
     // pub api_network: bool,
     // #[serde(rename = "bitmain-ccdelay")]
     // pub bitmain_ccdelay: String,
-    // #[serde(rename = "bitmain-fan-ctrl")]
-    // pub bitmain_fan_ctrl: bool,
-    // #[serde(rename = "bitmain-fan-pwm")]
-    // pub bitmain_fan_pwm: String,
-    // #[serde(rename = "bitmain-freq")]
-    // pub bitmain_freq: String,
-    // #[serde(rename = "bitmain-freq-level")]
-    // pub bitmain_freq_level: String,
+    #[serde(rename = "bitmain-fan-ctrl")]
+    pub bitmain_fan_ctrl: bool,
+    #[serde(rename = "bitmain-fan-pwm")]
+    pub bitmain_fan_pwm: i32,
+    #[serde(rename = "bitmain-freq")]
+    pub bitmain_freq: i32,
+    #[serde(rename = "bitmain-freq-level")]
+    pub bitmain_freq_level: i32,
+    #[serde(rename = "bitmain-user-ip-cat")]
+    pub bitmain_user_ip_cat: bool,
     // #[serde(rename = "bitmain-pwth")]
     // pub bitmain_pwth: String,
     // #[serde(rename = "bitmain-use-vil")]
     // pub bitmain_use_vil: bool,
-    // #[serde(rename = "bitmain-voltage")]
-    // pub bitmain_voltage: String,
+    #[serde(rename = "bitmain-voltage")]
+    pub bitmain_voltage: f32,
     /// "0" is normal, "1" is sleep
     #[serde(rename = "bitmain-work-mode")]
     pub bitmain_work_mode: StringOrInt,
