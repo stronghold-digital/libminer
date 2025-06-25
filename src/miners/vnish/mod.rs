@@ -570,7 +570,7 @@ impl Miner for Vnish {
             .await?;
 
         if resp.status().is_success() {
-            println!("{:?}", resp.text().await?);
+            // println!("{:?}", resp.text().await?);
             self.reboot().await?;
             self.invalidate().await?;
             Ok(())

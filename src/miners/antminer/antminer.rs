@@ -82,7 +82,6 @@ impl Antminer {
                 return Err(Error::HttpRequestFailed);
             }
             let text = resp.text().await?;
-            println!("Summary: {}", text);
             *summary = Some(serde_json::from_str(&text)?);
             // *summary = Some(resp.json().await?);
         }
@@ -96,7 +95,6 @@ impl Antminer {
                 .get(&format!("http://{}/cgi-bin/get_miner_conf.cgi", self.ip))
                 .send_with_digest_auth(&self.username, &self.password)
                 .await?;
-            println!("Miner Conf Resp: {:?}", resp);
             if !resp.status().is_success() {
                 if resp.status().as_u16() == 401 {
                     return Err(Error::Unauthorized);
@@ -105,7 +103,6 @@ impl Antminer {
             }
             // println!("Miner Conf: {}", resp.text().await?);
             let conf = resp.json().await?;
-            println!("Miner Conf: {:?}", conf);
             *miner_conf = Some(conf);
         }
         Ok(miner_conf)
@@ -315,8 +312,6 @@ impl Miner for Antminer {
         let mut miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!()).clone();
 
         miner_conf.bitmain_work_mode = StringOrInt::Int(sleep as u8);
-        println!("Setting sleep mode to: {}", miner_conf.bitmain_work_mode.as_int());
-        println!("Miner conf: {:?}", miner_conf);
 
         let resp = self.client.http_client
             .post(&format!("http://{}/cgi-bin/set_miner_conf.cgi", self.ip))
@@ -327,7 +322,6 @@ impl Miner for Antminer {
             .json(&miner_conf)
             .send_with_digest_auth(&self.username, &self.password)
             .await?;
-        println!("Set sleep response: {:?}", resp);
         if resp.status().is_success() {
             self.invalidate().await;
             Ok(())

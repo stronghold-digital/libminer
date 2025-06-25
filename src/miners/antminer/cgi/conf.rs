@@ -6,6 +6,7 @@ use crate::Pool;
 pub enum StringOrInt {
     String(String),
     Int(u8),
+    BigInt(u64),
 }
 
 impl StringOrInt {
@@ -13,8 +14,17 @@ impl StringOrInt {
         match self {
             StringOrInt::String(s) => s.parse().unwrap_or(0),
             StringOrInt::Int(i) => *i,
+            StringOrInt::BigInt(i) => (*i % 256) as u8, // Ensure it fits in u8
         }
     }
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum BoolIntStr {
+    Bool(bool),
+    Int(u8),
+    String(String),
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
@@ -30,21 +40,21 @@ pub struct GetConfResponse {
     // #[serde(rename = "bitmain-ccdelay")]
     // pub bitmain_ccdelay: String,
     #[serde(rename = "bitmain-fan-ctrl")]
-    pub bitmain_fan_ctrl: bool,
+    pub bitmain_fan_ctrl: BoolIntStr,
     #[serde(rename = "bitmain-fan-pwm")]
-    pub bitmain_fan_pwm: i32,
-    #[serde(rename = "bitmain-freq")]
-    pub bitmain_freq: i32,
-    #[serde(rename = "bitmain-freq-level")]
-    pub bitmain_freq_level: i32,
+    pub bitmain_fan_pwm: StringOrInt,
+    #[serde(rename = "bitmain-freq", default, skip_serializing_if = "Option::is_none")]
+    pub bitmain_freq: Option<StringOrInt>,
+    #[serde(rename = "bitmain-freq-level", default, skip_serializing_if = "Option::is_none")]
+    pub bitmain_freq_level: Option<StringOrInt>,
     #[serde(rename = "bitmain-user-ip-cat")]
-    pub bitmain_user_ip_cat: bool,
+    pub bitmain_user_ip_cat: BoolIntStr,
     // #[serde(rename = "bitmain-pwth")]
     // pub bitmain_pwth: String,
     // #[serde(rename = "bitmain-use-vil")]
     // pub bitmain_use_vil: bool,
-    #[serde(rename = "bitmain-voltage")]
-    pub bitmain_voltage: f32,
+    #[serde(rename = "bitmain-voltage", default, skip_serializing_if = "Option::is_none")]
+    pub bitmain_voltage: Option<f32>,
     /// "0" is normal, "1" is sleep
     #[serde(rename = "bitmain-work-mode")]
     pub bitmain_work_mode: StringOrInt,

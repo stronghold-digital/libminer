@@ -421,7 +421,7 @@ mod tests {
     async fn test_miner() {
         let client = ClientBuilder::new().build().unwrap();
 
-        let mut miner = client.get_miner("10.136.101.1", None).await.unwrap();
+        let mut miner = client.get_miner("10.126.121.108", None).await.unwrap();
 
         miner.auth("root", "root").await.unwrap();
 
