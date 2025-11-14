@@ -229,8 +229,12 @@ impl Miner for Vnish {
         let summary = self.get_summary().await?;
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
         match &summary.miner {
-            Some(miner) => Ok(miner.power_efficiency),
-            None => Ok(POWER_MAP.get(&self.get_model().await?).map(|e| e.0).unwrap_or(0.0))
+            Some(miner) => if miner.power_efficiency == 0.0 {
+                POWER_MAP.get(&self.get_model().await?).map(|e| e.0).ok_or(Error::ApiCallFailed("Invalid model".into()))
+            } else {
+                Ok(miner.power_efficiency)
+            },
+            None => POWER_MAP.get(&self.get_model().await?).map(|e| e.0).ok_or(Error::ApiCallFailed("Invalid model".into()))
         }
     }
 
