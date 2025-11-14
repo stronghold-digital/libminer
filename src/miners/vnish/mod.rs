@@ -230,7 +230,7 @@ impl Miner for Vnish {
         let summary = summary.as_ref().unwrap_or_else(|| unreachable!());
         match &summary.miner {
             Some(miner) => Ok(miner.power_efficiency),
-            None => Ok(0.0)
+            None => Ok(POWER_MAP.get(&self.get_model().await?).map(|e| e.0).unwrap_or(0.0))
         }
     }
 
