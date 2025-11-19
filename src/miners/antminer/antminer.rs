@@ -34,6 +34,7 @@ pub static POWER_MAP: phf::Map<&'static str, (f64, f64, f64)> = phf_map! {
     "s21" => (17.5, 7000.0, 200.0),
     "t21" => (19.0, 7000.0, 190.0),
     "s21+" => (16.5, 7000.0, 216.0),
+    "s21plus" => (16.5, 7000.0, 216.0),
     "s21pro" => (15.0, 7000.0, 234.0),
 };
 
@@ -312,6 +313,9 @@ impl Miner for Antminer {
         let mut miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!()).clone();
 
         miner_conf.bitmain_work_mode = StringOrInt::Int(sleep as u8);
+
+        let s = serde_json::to_string(&miner_conf)?;
+        println!("Setting miner conf: {}", s);
 
         let resp = self.client.http_client
             .post(&format!("http://{}/cgi-bin/set_miner_conf.cgi", self.ip))
