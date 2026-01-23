@@ -14,8 +14,6 @@ use crate::error::Error;
 use crate::{Client, ErrorType};
 use crate::miners::antminer::error::ANTMINER_ERRORS;
 
-use super::cgi::SetConf;
-
 /// Antminer models and their rated watt per TH
 /// If more than 1 variant exists, this will be an average of all variants
 /// Antminer rates these @25C
@@ -102,8 +100,10 @@ impl Antminer {
                 }
                 return Err(Error::HttpRequestFailed);
             }
-            // println!("Miner Conf: {}", resp.text().await?);
-            let conf = resp.json().await?;
+            let txt = resp.text().await?;
+            println!("Miner Conf: {}", txt);
+            // let conf = resp.json().await?;
+            let conf = serde_json::from_str(&txt)?;
             *miner_conf = Some(conf);
         }
         Ok(miner_conf)
@@ -282,14 +282,13 @@ impl Miner for Antminer {
 
     async fn set_pools(&mut self, pools: Vec<Pool>) -> Result<(), Error> {
         let miner_conf = self.miner_conf().await?;
-        let miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!());
+        let mut miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!()).clone();
 
-        let mut json: SetConf = SetConf::from(miner_conf);
-        json.pools = pools;
+        miner_conf.pools = pools;
 
         let resp = self.client.http_client
             .post(&format!("http://{}/cgi-bin/set_miner_conf.cgi", self.ip))
-            .json(&json)
+            .json(&miner_conf)
             .send_with_digest_auth(&self.username, &self.password)
             .await?;
         if resp.status().is_success() {
@@ -308,11 +307,17 @@ impl Miner for Antminer {
     }
 
     async fn set_sleep(&mut self, sleep: bool) -> Result<(), Error> {
-        
-        let miner_conf = self.miner_conf().await?;
-        let mut miner_conf = miner_conf.as_ref().unwrap_or_else(|| unreachable!()).clone();
+        let mut miner_conf = {
+            let guard = self.miner_conf().await?;
+            guard.as_ref().unwrap_or_else(|| unreachable!()).clone()
+        };
 
-        miner_conf.bitmain_work_mode = StringOrInt::Int(sleep as u8);
+        miner_conf.bitmain_work_mode = StringOrInt::Int(if sleep { 1 } else { 0 });
+        miner_conf.miner_mode = Some(StringOrInt::Int(if sleep { 1 } else { 0 }));
+        // If the hashrate percent is explicitly set to null, we need to set it to a value
+        if let Some(None) = miner_conf.bitmain_hashrate_percent {
+            miner_conf.bitmain_hashrate_percent = Some(Some(StringOrInt::String("100".to_string())));
+        }
 
         let s = serde_json::to_string(&miner_conf)?;
         println!("Setting miner conf: {}", s);
@@ -320,7 +325,7 @@ impl Miner for Antminer {
         let resp = self.client.http_client
             .post(&format!("http://{}/cgi-bin/set_miner_conf.cgi", self.ip))
             // .json(&json!({
-            //     // "miner-mode": sleep as u8,
+            //     "miner-mode": sleep as u8,
             //     "bitmain-work-mode": sleep as u8,
             // }))
             .json(&miner_conf)
@@ -330,6 +335,7 @@ impl Miner for Antminer {
             self.invalidate().await;
             Ok(())
         } else {
+            println!("Failed to set sleep mode: {}", resp.status());
             Err(Error::HttpRequestFailed)
         }
     }

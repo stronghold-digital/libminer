@@ -419,17 +419,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_miner() {
-        let client = ClientBuilder::new().build().unwrap();
+        let client = ClientBuilder::new()
+            .connect_timeout(Duration::from_secs(30))
+            .request_timeout(Duration::from_secs(60))
+            .build().unwrap();
 
-        let mut miner = client.get_miner("10.126.121.108", None).await.unwrap();
+        let mut miner = client.get_miner("10.126.101.50", None).await.unwrap();
 
         miner.auth("root", "root").await.unwrap();
 
-        miner.get_sleep().await.unwrap();
+        let sleep = miner.get_sleep().await.unwrap();
         miner.get_model().await.unwrap();
-        miner.get_efficiency().await.unwrap();
+        let eff = miner.get_efficiency().await.unwrap();
+        println!("Efficiency: {}", eff);
         miner.get_hashrate().await.unwrap();
         miner.get_nameplate_power().await.unwrap();
         miner.get_power().await.unwrap();
+
+        miner.set_sleep(!sleep).await.unwrap();
     }
 }
